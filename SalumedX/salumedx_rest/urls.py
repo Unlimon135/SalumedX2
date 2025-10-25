@@ -16,12 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from tasks import views
+from login import views  #Esto hace referencia a la carpeta que encierra todo el Django
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name = 'home'),
     path('signup/', views.signup, name = 'signup'),
     path('tasks/', views.tasks, name = 'tasks'),
-    path('logout/', views.signout, name = 'logout') #cuando visites logout/, se ejecuta la función signout
+    path('logout/', views.signout, name = 'logout'), #cuando visites logout/, se ejecuta la función signout
+    path('signin/', views.signin, name = 'signin')
 ]
