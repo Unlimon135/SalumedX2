@@ -1,43 +1,65 @@
 from django.db import models
+from django.conf import settings
+from django.contrib.auth.models import User  #Esta es la entidad base de usuario de Django
 
 # Create your models here.
-class Usuario(models.Model):
-    id_usuario = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=100)
-    apellido = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    contraseña = models.CharField(max_length=128)
-    tipo_usuario = models.CharField(max_length=50)
-    fecha_registro = models.DateTimeField(auto_now_add=True)
-    estado = models.BooleanField(default=True)
+    
+#IMPORTENTEEEEEEEEEEEEE
+#Usuario se eliminó porque Django ya proporciona un modelo User que tiene validaciones integradas y funcionalidades de autenticación.
 
-    def __str__(self):
-        return f"{self.nombre} {self.apellido}"
+#------Clase User ------
 
+#((((ATRIBUTOS))))
+#username → Nombre de usuario único (obligatorio).
 
-class Medico(models.Model):
-    id_medico = models.AutoField(primary_key=True)
-    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)
-    numero_licencia = models.CharField(max_length=50)
-    institucion = models.CharField(max_length=150)
-    ubicacion_consultorio = models.CharField(max_length=255)
+#first_name → Nombre(s) del usuario.
 
-    def __str__(self):
-        return f"Dr. {self.usuario.nombre} {self.usuario.apellido}"
+#last_name → Apellido(s) del usuario.
+
+#email → Correo electrónico.
+
+#password → Contraseña (almacenada en hash).
+
+#is_staff → Booleano, indica si el usuario puede acceder al admin de Django.
+
+#is_active → Booleano, indica si la cuenta está activa.
+
+#is_superuser → Booleano, indica si es administrador con todos los permisos.
+
+#last_login → Fecha/hora del último login.
+
+#date_joined → Fecha/hora en que se creó el usuario.
+
+#((((METODOS))))----------------------------------------------------------------------------
+#get_full_name() → Devuelve first_name + last_name.
+
+#get_short_name() → Devuelve first_name.
+
+#check_password() → Verifica si un password coincide.
+
+#set_password() → Para cambiar la contraseña correctamente.
 
 
 class Paciente(models.Model):
-    id_paciente = models.AutoField(primary_key=True)
-    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)
-    nombre = models.CharField(max_length=100)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)  #Esto importa el modelo User de Django
+    # Campos específicos del paciente
     fecha_nacimiento = models.DateField()
     cedula = models.CharField(max_length=20, unique=True)
     direccion = models.CharField(max_length=255)
     telefono = models.CharField(max_length=20)
 
     def __str__(self):
-        return self.nombre
+        return f"{self.user.get_full_name()}"
 
+class Medico(models.Model):#--------El tipo de usaurio se validará en los servicios de autenticación------
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # Campos específicos del médico
+    numero_licencia = models.CharField(max_length=50)
+    institucion = models.CharField(max_length=150)
+    ubicacion_consultorio = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"Dr. {self.user.get_full_name()}"
 
 class Producto(models.Model):
     id_producto = models.AutoField(primary_key=True)
@@ -115,7 +137,7 @@ class DetallePrescripcion(models.Model):
 
 class Busqueda(models.Model):
     id_busqueda = models.AutoField(primary_key=True)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     termino_busqueda = models.CharField(max_length=255)
     fecha_hora = models.DateTimeField(auto_now_add=True)
     resultados_mostrados = models.IntegerField()
@@ -123,4 +145,5 @@ class Busqueda(models.Model):
     geolocalizacion = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        return f"Búsqueda de {self.usuario.nombre} - {self.termino_busqueda}"
+        # Use the default User __str__ (username) for readability
+        return f"Búsqueda de {self.user} - {self.termino_busqueda}"
