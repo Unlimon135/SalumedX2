@@ -3,14 +3,99 @@
 {% block content %}
 <h1>Crear una cuenta</h1>
 
-{{error}}
+{# Mostrar errores generales pasados desde la vista #}
+{% if error %}
+    <div class="error">{{ error }}</div>
+{% endif %}
 
-<form action="/signup/" method  = "POST">
-    {% csrf_token %}
-    {{form.as_p}}
-    <button>
-        Signup
-    </button>
-</form>
+{# Mostrar errores del form de Django si existen #}
+{% if form.errors %}
+    <div class="error">
+        <ul>
+            {% for field, errors in form.errors.items %}
+                {% for e in errors %}
+                    <li>{{ field }}: {{ e }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+<form action="{% url 'signup' %}" method="post" id="signup-form">
+        {% csrf_token %}
+
+        <label for="username">Nombre de usuario</label>
+        <input type="text" name="username" id="username" required value="{{ request.POST.username|default_if_none:'' }}">
+
+        <label for="first_name">Nombre</label>
+        <input type="text" name="first_name" id="first_name" value="{{ request.POST.first_name|default_if_none:'' }}">
+
+        <label for="last_name">Apellido</label>
+        <input type="text" name="last_name" id="last_name" value="{{ request.POST.last_name|default_if_none:'' }}">
+
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" value="{{ request.POST.email|default_if_none:'' }}">
+
+        <label for="password1">Contraseña</label>
+        <input type="password" name="password1" id="password1" required>
+
+        <label for="password2">Confirmar contraseña</label>
+        <input type="password" name="password2" id="password2" required>
+
+        <p>Tipo de usuario:</p>
+        <label><input type="radio" name="tipo_usuario" value="paciente" checked> Paciente</label>
+        <label><input type="radio" name="tipo_usuario" value="medico"> Médico</label>
+
+        <div id="fields-paciente" class="optional-block">
+            <h4>Datos del paciente (opcionales)</h4>
+            <label for="fecha_nacimiento">Fecha de nacimiento</label>
+            <input type="date" name="fecha_nacimiento" id="fecha_nacimiento" value="{{ request.POST.fecha_nacimiento|default_if_none:'' }}">
+
+            <label for="cedula">Cédula</label>
+            <input type="text" name="cedula" id="cedula" value="{{ request.POST.cedula|default_if_none:'' }}">
+
+            <label for="direccion">Dirección</label>
+            <input type="text" name="direccion" id="direccion" value="{{ request.POST.direccion|default_if_none:'' }}">
+
+            <label for="telefono">Teléfono</label>
+            <input type="text" name="telefono" id="telefono" value="{{ request.POST.telefono|default_if_none:'' }}">
+        </div>
+
+        <div id="fields-medico" class="optional-block" style="display:none">
+            <h4>Datos del médico (opcionales)</h4>
+            <label for="numero_licencia">Número de licencia</label>
+            <input type="text" name="numero_licencia" id="numero_licencia" value="{{ request.POST.numero_licencia|default_if_none:'' }}">
+
+            <label for="institucion">Institución</label>
+            <input type="text" name="institucion" id="institucion" value="{{ request.POST.institucion|default_if_none:'' }}">
+
+            <label for="ubicacion_consultorio">Ubicación del consultorio</label>
+            <input type="text" name="ubicacion_consultorio" id="ubicacion_consultorio" value="{{ request.POST.ubicacion_consultorio|default_if_none:'' }}">
+        </div>
+
+        <button type="submit">Crear cuenta</button>
+    </form>
+
+    <script>
+        // Mostrar/ocultar campos según tipo de usuario seleccionado
+        const tipoRadios = document.querySelectorAll('input[name="tipo_usuario"]')
+        const pacienteBlock = document.getElementById('fields-paciente')
+        const medicoBlock = document.getElementById('fields-medico')
+
+        function toggleBlocks() {
+            const tipo = document.querySelector('input[name="tipo_usuario"]:checked').value
+            if (tipo === 'medico') {
+                medicoBlock.style.display = 'block'
+                pacienteBlock.style.display = 'none'
+            } else {
+                medicoBlock.style.display = 'none'
+                pacienteBlock.style.display = 'block'
+            }
+        }
+
+        tipoRadios.forEach(r => r.addEventListener('change', toggleBlocks))
+        // inicializar
+        toggleBlocks()
+    </script>
 
 {% endblock %}

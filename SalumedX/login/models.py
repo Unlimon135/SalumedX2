@@ -104,7 +104,13 @@ class Receta(models.Model):
     ubicacion_emision = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"Receta #{self.id_receta} - {self.paciente.nombre}"
+        # paciente no tiene campo 'nombre' cuando usamos User; usamos get_full_name()
+        paciente_name = getattr(self.paciente.user, 'get_full_name', None)
+        if callable(paciente_name):
+            display = self.paciente.user.get_full_name()
+        else:
+            display = str(self.paciente.user)
+        return f"Receta #{self.id_receta} - {display}"
 
 
 class DetalleReceta(models.Model):
@@ -118,7 +124,12 @@ class DetalleReceta(models.Model):
     instrucciones = models.TextField()
 
     def __str__(self):
-        return f"{self.producto.nombre_comercial} - {self.receta.paciente.nombre}"
+        paciente_name = getattr(self.receta.paciente.user, 'get_full_name', None)
+        if callable(paciente_name):
+            display = self.receta.paciente.user.get_full_name()
+        else:
+            display = str(self.receta.paciente.user)
+        return f"{self.producto.nombre_comercial} - {display}"
 
 
 class DetallePrescripcion(models.Model):
