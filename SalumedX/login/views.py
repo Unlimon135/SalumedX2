@@ -71,6 +71,7 @@ def signup(request):  #username funciona casi como un primary key en django, si 
 
             # logear al usuario recién creado
             login(request, user)
+            print("Usuario creado y logueado exitosamente:", user.username)
             return redirect('tasks')
 
         except IntegrityError:
@@ -87,7 +88,10 @@ def signup(request):  #username funciona casi como un primary key en django, si 
 
 
 def tasks(request):
-    return render(request, 'tasks.html')
+    print("Accediendo a la vista tasks")
+    return render(request, 'tasks.html', {
+        'user': request.user
+    })
 
 #no se llama logout porque luego hay conflicto entre el método y la función importada (logout)
 def signout(request):
