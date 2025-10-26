@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Prueba WebSocket</title>
+</head>
+<body>
+  <h1>Prueba del servidor WebSocket</h1>
+  <button id="btnGet">Obtener notificaciones</button>
+  <button id="btnAdd">Agregar notificación</button>
+  <pre id="output"></pre>
+
+  <script>
+    const socket = new WebSocket('ws://localhost:8080/ws');
+    const output = document.getElementById('output');
+
+    socket.onopen = () => {
+      output.innerText += '✅ Conectado al WebSocket\n';
+    };
+
+    socket.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      output.innerText += '📩 ' + JSON.stringify(msg, null, 2) + '\n';
+    };
+
+    socket.onclose = () => {
+      output.innerText += '🔴 Conexión cerrada\n';
+    };
+
+    document.getElementById('btnGet').onclick = () => {
+      socket.send(JSON.stringify({ action: 'get' }));
+    };
+
+    document.getElementById('btnAdd').onclick = () => {
+      socket.send(JSON.stringify({
+        action: 'add',
+        data: { title: 'Nueva prueba', message: 'Mensaje generado desde el navegador' }
+      }));
+    };
+  </script>
+</body>
+</html>
