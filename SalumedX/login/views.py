@@ -25,7 +25,6 @@ def signup(request):  #username funciona casi como un primary key en django, si 
     # este bloque procesa los campos adicionales enviados desde la plantilla
     # campos esperados (opcionales según tipo): first_name, last_name, email, tipo_usuario
     if request.method == 'POST':
-        # Validación básica de contraseña (se puede delegar a UserCreationForm también)
         if request.POST.get('password1') != request.POST.get('password2'):
             #si las contraseñas no coinciden, enviar este mensaje y no crea al usuario
             return render(request, 'signup.html', {
@@ -88,9 +87,20 @@ def signup(request):  #username funciona casi como un primary key en django, si 
 
 
 def tasks(request):
-    print("Accediendo a la vista tasks")
+    # Determinar el tipo de usuario consultando si existe un perfil Medico o Paciente
+    from .models import Medico, Paciente
+
+    tipo = 'desconocido'
+    if request.user and request.user.is_authenticated:
+        if Medico.objects.filter(user=request.user).exists():
+            tipo = 'medico'
+        elif Paciente.objects.filter(user=request.user).exists():
+            tipo = 'paciente'
+
+    print("Accediendo a la vista tasks - tipo_usuario:", tipo)
     return render(request, 'tasks.html', {
-        'user': request.user
+        'user': request.user,
+        'tipo_usuario': tipo,
     })
 
 #no se llama logout porque luego hay conflicto entre el método y la función importada (logout)

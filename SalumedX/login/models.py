@@ -44,6 +44,7 @@ class Paciente(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)  #Esto importa el modelo User de Django
     # Campos específicos del paciente
     fecha_nacimiento = models.DateField()
+    tipo_usuario = models.CharField(max_length=20, default='paciente')
     cedula = models.CharField(max_length=20, unique=True)
     direccion = models.CharField(max_length=255)
     telefono = models.CharField(max_length=20)
@@ -54,6 +55,7 @@ class Paciente(models.Model):
 class Medico(models.Model):#--------El tipo de usaurio se validará en los servicios de autenticación------
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     # Campos específicos del médico
+    tipo_usuario = models.CharField(max_length=20, default='medico')
     numero_licencia = models.CharField(max_length=50)
     institucion = models.CharField(max_length=150)
     ubicacion_consultorio = models.CharField(max_length=255)
