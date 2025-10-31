@@ -5,6 +5,8 @@ from django.contrib.auth import login , logout, authenticate
 from django.http import HttpResponse
 from django.db import IntegrityError
 
+
+
 #IMPORTANTEEEEEEEEEEEEEEEE
 #por cada render, debe haber un template (archivo html) en la carpeta templates
 
@@ -134,3 +136,14 @@ def signin(request):
         else:
             login(request, user)  #si el usuario es válido, se logea (guarda la cookie de sesión)
             return redirect('tasks')
+        
+
+def recetas(request):
+
+    from .models import Medico
+
+    if request.user and request.user.is_authenticated:
+        if Medico.objects.filter(user=request.user).exists():
+            tipo = 'medico'
+            return render(request, 'recetas.html')
+    return HttpResponse("No tienes permiso para ver esta página.")

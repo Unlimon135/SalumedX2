@@ -89,6 +89,7 @@ class Farmacia(models.Model):
 class Sucursal(models.Model):
     id_sucursal = models.AutoField(primary_key=True)
     farmacia = models.ForeignKey(Farmacia, on_delete=models.CASCADE)
+    ubicacion = models.CharField(max_length=100, default='No especificada')
     longitud = models.DecimalField(max_digits=9, decimal_places=6)
     latitud = models.DecimalField(max_digits=9, decimal_places=6)
 
@@ -148,15 +149,3 @@ class DetallePrescripcion(models.Model):
         return f"{self.producto.nombre_comercial} en {self.farmacia.nombre_comercial}"
 
 
-class Busqueda(models.Model):
-    id_busqueda = models.AutoField(primary_key=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    termino_busqueda = models.CharField(max_length=255)
-    fecha_hora = models.DateTimeField(auto_now_add=True)
-    resultados_mostrados = models.IntegerField()
-    farmacia_seleccionada = models.ForeignKey(Farmacia, on_delete=models.SET_NULL, null=True, blank=True)
-    geolocalizacion = models.CharField(max_length=255, blank=True, null=True)
-
-    def __str__(self):
-        # Use the default User __str__ (username) for readability
-        return f"Búsqueda de {self.user} - {self.termino_busqueda}"

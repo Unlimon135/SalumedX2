@@ -14,6 +14,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+
 from django.contrib import admin
 from django.urls import path
 from login import views  #Esto hace referencia a la carpeta que encierra todo el Django
@@ -24,5 +26,6 @@ urlpatterns = [
     path('signup/', views.signup, name = 'signup'),
     path('tasks/', views.tasks, name = 'tasks'),
     path('logout/', views.signout, name = 'logout'), #cuando visites logout/, se ejecuta la función signout
-    path('signin/', views.signin, name = 'signin')
+    path('signin/', views.signin, name = 'signin'),
+    path('recetas/', views.recetas, name = 'recetas')
 ]
