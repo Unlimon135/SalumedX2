@@ -18,14 +18,14 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
-from login import views  #Esto hace referencia a la carpeta que encierra todo el Django
+from login.views import home, signup, tasks, signout, signin, recetas
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.home, name = 'home'),
-    path('signup/', views.signup, name = 'signup'),
-    path('tasks/', views.tasks, name = 'tasks'),
-    path('logout/', views.signout, name = 'logout'), #cuando visites logout/, se ejecuta la función signout
-    path('signin/', views.signin, name = 'signin'),
-    path('recetas/', views.recetas, name = 'recetas')
+    path('', home, name='home'),
+    path('signup/', signup, name='signup'),
+    path('tasks/', tasks, name='tasks'),
+    path('logout/', signout, name='logout'),
+    path('signin/', signin, name='signin'),
+    path('recetas/', recetas, name='recetas')
 ]
