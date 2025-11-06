@@ -17,8 +17,11 @@ Including another URLconf
 
 
 from django.contrib import admin
-from django.urls import path
-from login.views import home, signup, tasks, signout, signin, recetas
+from django.urls import path, include
+from login.views import (
+    home, signup, tasks, signout, signin, recetas, 
+    detalle_prescripcion, paciente_info, medico_info
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,5 +30,10 @@ urlpatterns = [
     path('tasks/', tasks, name='tasks'),
     path('logout/', signout, name='logout'),
     path('signin/', signin, name='signin'),
-    path('recetas/', recetas, name='recetas')
+    path('recetas/', recetas, name='recetas'),
+    path('detalle-prescripcion/', detalle_prescripcion, name='detalle_prescripcion'),
+    path('paciente-info/', paciente_info, name='paciente_info'),
+    path('medico-info/', medico_info, name='medico_info'),
+    # DRF browsable API login (optional)
+    path('api-auth/', include('rest_framework.urls'))
 ]

@@ -1,79 +1,47 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from django.contrib.auth.models import User
-from django.contrib.auth import login , logout, authenticate
-from django.http import HttpResponse
+from django.contrib.auth import login
 from django.db import IntegrityError
+from login.models import Medico, Paciente
+from login.serializers import MedicoSerializer, PacienteSerializer, UserSerializer
 
-def signup(request):  #username funciona casi como un primary key en django, si existe un usuario con ese username, no se puede crear otro por más que se use otro password
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def signup(request):
+    data = request.data
+    if data.get('password1') != data.get('password2'):
+        return Response({'success': False, 'error': 'Las contraseñas no coinciden'}, status=400)
 
-    # Mantengo el comportamiento original: mostrar el formulario en GET
-    if request.method == 'GET':
-        print("enviando formulario")
-        return render(request, 'signup.html', {
-            'form': UserCreationForm()
-        })
+    username = data.get('username')
+    password = data.get('password1')
+    first_name = data.get('first_name', '')
+    last_name = data.get('last_name', '')
+    email = data.get('email', '')
+    tipo = data.get('tipo_usuario', 'paciente').lower()
 
-    # POST: crear usuario y perfil asociado (Paciente o Medico)
-    # este bloque procesa los campos adicionales enviados desde la plantilla
-    # campos esperados (opcionales según tipo): first_name, last_name, email, tipo_usuario
-    if request.method == 'POST':
-        if request.POST.get('password1') != request.POST.get('password2'):
-            #si las contraseñas no coinciden, enviar este mensaje y no crea al usuario
-            return render(request, 'signup.html', {
-                'form': UserCreationForm(),
-                'error': 'Las contraseñas no coinciden'
-            })
+    try:
+        user = User.objects.create_user(username=username, password=password,
+                                       first_name=first_name, last_name=last_name, email=email)
+        user.save()
 
-        username = request.POST.get('username')
-        password = request.POST.get('password1')
-        first_name = request.POST.get('first_name', '')
-        last_name = request.POST.get('last_name', '')
-        email = request.POST.get('email', '')
-        tipo = request.POST.get('tipo_usuario', 'paciente').lower()
-
-        try:
-            # crear el usuario Django
-            user = User.objects.create_user(username=username, password=password,
-                                            first_name=first_name, last_name=last_name, email=email)
-            user.save()
-
-            # intentar crear perfiles asociados: Medico o Paciente
-            from .models import Medico, Paciente
-
-            if tipo == 'medico':
-                # campos específicos del médico (pueden venir vacíos si la plantilla no los llena)
-                numero_licencia = request.POST.get('numero_licencia', '')
-                institucion = request.POST.get('institucion', '')
-                ubicacion = request.POST.get('ubicacion_consultorio', '')
-                # crear el perfil de Medico ligado al User de Django
-                Medico.objects.create(user=user, numero_licencia=numero_licencia,
-                                      institucion=institucion, ubicacion_consultorio=ubicacion)
-
-            else:
-                # paciente
-                fecha_nacimiento = request.POST.get('fecha_nacimiento', None)
-                cedula = request.POST.get('cedula', '')
-                direccion = request.POST.get('direccion', '')
-                telefono = request.POST.get('telefono', '')
-
-                # crear el perfil de Paciente ligado al User de Django
-                Paciente.objects.create(user=user, fecha_nacimiento=fecha_nacimiento,
-                                        cedula=cedula, direccion=direccion, telefono=telefono)
-
-            # logear al usuario recién creado
+        if tipo == 'medico':
+            numero_licencia = data.get('numero_licencia', '')
+            institucion = data.get('institucion', '')
+            ubicacion = data.get('ubicacion_consultorio', '')
+            medico = Medico.objects.create(user=user, numero_licencia=numero_licencia,
+                                           institucion=institucion, ubicacion_consultorio=ubicacion)
             login(request, user)
-            print("Usuario creado y logueado exitosamente:", user.username)
-            return redirect('tasks')
-
-        except IntegrityError:
-            # si no se puede crear el usuario, es porque ya existe un usuario con el mismo nombre
-            return render(request, 'signup.html', {
-                'form': UserCreationForm(),
-                'error': 'El usuario ya existe'
-            })
-
-    # por defecto, volver a mostrar el formulario
-    return render(request, 'signup.html', {
-        'form': UserCreationForm(),
-    })
+            return Response({'success': True, 'tipo_usuario': 'medico', 'perfil': MedicoSerializer(medico).data})
+        else:
+            fecha_nacimiento = data.get('fecha_nacimiento', None)
+            cedula = data.get('cedula', '')
+            direccion = data.get('direccion', '')
+            telefono = data.get('telefono', '')
+            paciente = Paciente.objects.create(user=user, fecha_nacimiento=fecha_nacimiento,
+                                               cedula=cedula, direccion=direccion, telefono=telefono)
+            login(request, user)
+            return Response({'success': True, 'tipo_usuario': 'paciente', 'perfil': PacienteSerializer(paciente).data})
+    except IntegrityError:
+        return Response({'success': False, 'error': 'El usuario ya existe'}, status=400)

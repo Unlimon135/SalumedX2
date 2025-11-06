@@ -1,9 +1,6 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth.models import User
-from django.contrib.auth import login , logout, authenticate
-from django.http import HttpResponse
-from django.db import IntegrityError
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
+@api_view(['GET'])
 def home(request):
-    return render(request, 'home.html')
+    return Response({"message": "Bienvenido a la API de SalumedX"})
