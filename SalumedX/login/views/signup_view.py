@@ -10,18 +10,27 @@ from login.serializers import MedicoSerializer, PacienteSerializer, UserSerializ
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
-    data = request.data
-    if data.get('password1') != data.get('password2'):
-        return Response({'success': False, 'error': 'Las contraseñas no coinciden'}, status=400)
-
-    username = data.get('username')
-    password = data.get('password1')
-    first_name = data.get('first_name', '')
-    last_name = data.get('last_name', '')
-    email = data.get('email', '')
-    tipo = data.get('tipo_usuario', 'paciente').lower()
-
     try:
+        data = request.data
+        
+        # Validaciones básicas
+        if not data.get('username'):
+            return Response({'success': False, 'error': 'El nombre de usuario es requerido'}, status=400)
+        
+        if not data.get('password1'):
+            return Response({'success': False, 'error': 'La contraseña es requerida'}, status=400)
+        
+        if data.get('password1') != data.get('password2'):
+            return Response({'success': False, 'error': 'Las contraseñas no coinciden'}, status=400)
+
+        username = data.get('username')
+        password = data.get('password1')
+        first_name = data.get('first_name', '')
+        last_name = data.get('last_name', '')
+        email = data.get('email', '')
+        tipo = data.get('tipo_usuario', 'paciente').lower()
+
+        # Crear usuario
         user = User.objects.create_user(username=username, password=password,
                                        first_name=first_name, last_name=last_name, email=email)
         user.save()
@@ -33,7 +42,7 @@ def signup(request):
             medico = Medico.objects.create(user=user, numero_licencia=numero_licencia,
                                            institucion=institucion, ubicacion_consultorio=ubicacion)
             login(request, user)
-            return Response({'success': True, 'tipo_usuario': 'medico', 'perfil': MedicoSerializer(medico).data})
+            return Response({'success': True, 'tipo_usuario': 'medico', 'perfil': MedicoSerializer(medico).data}, status=201)
         else:
             fecha_nacimiento = data.get('fecha_nacimiento', None)
             cedula = data.get('cedula', '')
@@ -42,6 +51,10 @@ def signup(request):
             paciente = Paciente.objects.create(user=user, fecha_nacimiento=fecha_nacimiento,
                                                cedula=cedula, direccion=direccion, telefono=telefono)
             login(request, user)
-            return Response({'success': True, 'tipo_usuario': 'paciente', 'perfil': PacienteSerializer(paciente).data})
+            return Response({'success': True, 'tipo_usuario': 'paciente', 'perfil': PacienteSerializer(paciente).data}, status=201)
+    
     except IntegrityError:
         return Response({'success': False, 'error': 'El usuario ya existe'}, status=400)
+    except Exception as e:
+        # Captura cualquier otro error y devuelve JSON (no HTML)
+        return Response({'success': False, 'error': f'Error en el servidor: {str(e)}'}, status=500)
