@@ -20,7 +20,8 @@ from django.contrib import admin
 from django.urls import path, include
 from login.views import (
     home, signup, tasks, signout, signin, recetas, 
-    detalle_prescripcion, paciente_info, medico_info
+    detalle_prescripcion, paciente_info, medico_info,
+    productos, farmacias, sucursales
 )
 
 urlpatterns = [
@@ -34,6 +35,9 @@ urlpatterns = [
     path('detalle-prescripcion/', detalle_prescripcion, name='detalle_prescripcion'),
     path('paciente-info/', paciente_info, name='paciente_info'),
     path('medico-info/', medico_info, name='medico_info'),
+    path('productos/', productos, name='productos'),
+    path('farmacias/', farmacias, name='farmacias'),
+    path('sucursales/', sucursales, name='sucursales'),
     # DRF browsable API login (optional)
     path('api-auth/', include('rest_framework.urls'))
 ]
