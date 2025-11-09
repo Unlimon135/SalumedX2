@@ -31,9 +31,29 @@ def recetas(request):
 
         # GET: listar recetas del médico
         if request.method == 'GET':
-            recetas_qs = Receta.objects.filter(medico=user.medico)
+            recetas_qs = Receta.objects.filter(medico=user.medico) #se crea una variable para permitir solo recetas del medico en cuestion
+            
+            # Filtro por ID de receta específica
+            receta_id = request.query_params.get('id')
+            if receta_id:
+                try:
+                    receta = recetas_qs.get(pk=receta_id)
+                    return Response({'receta': RecetaSerializer(receta).data})
+                except Receta.DoesNotExist:
+                    return Response({'error': 'Receta no encontrada o no tienes permiso para verla'}, status=404)
+            
+            # Filtro por paciente
+            paciente_id = request.query_params.get('paciente')
+            if paciente_id:
+                recetas_qs = recetas_qs.filter(paciente_id=paciente_id)
+            
+            # Filtro por fecha
+            fecha = request.query_params.get('fecha')
+            if fecha:
+                recetas_qs = recetas_qs.filter(fecha_emision=fecha)
+            
             data = RecetaSerializer(recetas_qs, many=True).data
-            return Response({'recetas': data})
+            return Response({'recetas': data, 'total': len(data)})
 
         # POST: crear receta
         payload = request.data
