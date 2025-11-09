@@ -10,7 +10,10 @@ from datetime import date
 @permission_classes([IsAuthenticated])
 def recetas(request):
     """
-    GET: devuelve las recetas del médico autenticado.
+    GET: devuelve las recetas del médico autenticado O del paciente autenticado.
+    - Médicos: ven las recetas que ellos escribieron
+    - Pacientes: ven las recetas que les escribieron
+    
     POST: crea una receta (solo para médicos). Formato esperado (JSON):
     {
       "paciente": <id_paciente>,
@@ -26,12 +29,18 @@ def recetas(request):
     """
     try:
         user = request.user
-        if not hasattr(user, 'medico'):
-            return Response({'error': 'No tienes permiso para ver esta página.'}, status=403)
 
-        # GET: listar recetas del médico
+        # GET: listar recetas según tipo de usuario
         if request.method == 'GET':
-            recetas_qs = Receta.objects.filter(medico=user.medico) #se crea una variable para permitir solo recetas del medico en cuestion
+            # Determinar si es médico o paciente
+            if hasattr(user, 'medico'):
+                # Médico: ver las recetas que él escribió
+                recetas_qs = Receta.objects.filter(medico=user.medico)
+            elif hasattr(user, 'paciente'):
+                # Paciente: ver las recetas que le escribieron
+                recetas_qs = Receta.objects.filter(paciente=user.paciente)
+            else:
+                return Response({'error': 'Usuario sin perfil de médico o paciente'}, status=403)
             
             # Filtro por ID de receta específica
             receta_id = request.query_params.get('id')
@@ -42,9 +51,9 @@ def recetas(request):
                 except Receta.DoesNotExist:
                     return Response({'error': 'Receta no encontrada o no tienes permiso para verla'}, status=404)
             
-            # Filtro por paciente
+            # Filtro por paciente (solo para médicos)
             paciente_id = request.query_params.get('paciente')
-            if paciente_id:
+            if paciente_id and hasattr(user, 'medico'):
                 recetas_qs = recetas_qs.filter(paciente_id=paciente_id)
             
             # Filtro por fecha
@@ -55,7 +64,9 @@ def recetas(request):
             data = RecetaSerializer(recetas_qs, many=True).data
             return Response({'recetas': data, 'total': len(data)})
 
-        # POST: crear receta
+        # POST: crear receta (solo médicos)
+        if not hasattr(user, 'medico'):
+            return Response({'error': 'Solo los médicos pueden crear recetas.'}, status=403)
         payload = request.data
         paciente_id = payload.get('paciente') or payload.get('paciente_id')
         if not paciente_id:
