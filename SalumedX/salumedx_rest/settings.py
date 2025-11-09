@@ -161,6 +161,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://localhost:4000',
     'https://salumedx-rest.onrender.com',  # Tu propio dominio de Render
     'https://tu-frontend.vercel.app'  # Cuando desplieguen el frontend
 ]
