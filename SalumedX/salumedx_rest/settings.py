@@ -146,11 +146,11 @@ CORS_ALLOW_CREDENTIALS = True
 # Permite cookies desde HTTP (localhost) a HTTPS (Render)
 SESSION_COOKIE_SECURE = False  # False permite HTTP en desarrollo
 SESSION_COOKIE_HTTPONLY = True  # Seguridad: solo accesible por HTTP, no por JS
-SESSION_COOKIE_SAMESITE = 'Lax'  # Permite cookies entre sitios en peticiones GET
+SESSION_COOKIE_SAMESITE = 'None'  # None permite cookies cross-site (requiere Secure en producción)
 
 CSRF_COOKIE_SECURE = False  # False permite HTTP en desarrollo  
 CSRF_COOKIE_HTTPONLY = False  # False permite que JS lea el token
-CSRF_COOKIE_SAMESITE = 'Lax'  # Permite cookies entre sitios
+CSRF_COOKIE_SAMESITE = 'None'  # None permite cookies cross-site
 
 # Django REST Framework
 REST_FRAMEWORK = {
