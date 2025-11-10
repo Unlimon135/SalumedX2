@@ -159,9 +159,19 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 CSRF_TRUSTED_ORIGINS = [
+    # Desarrollo local - Vue/React/Next
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://localhost:8080',
+    
+    # Desarrollo local - Sinatra (GraphQL)
     'http://localhost:4000',
-    'https://salumedx-rest.onrender.com',  # Tu propio dominio de Render
-    'https://tu-frontend.vercel.app'  # Cuando desplieguen el frontend
+    'http://localhost:4567',  # Puerto por defecto de Sinatra
+    
+    # Producción - Backend
+    'https://salumedx-rest.onrender.com',
+    
+    # Producción - Frontend (cuando desplieguen)
+    'https://tu-frontend.vercel.app',
+    'https://tu-sinatra.onrender.com'  # Si despliegan Sinatra
 ]
