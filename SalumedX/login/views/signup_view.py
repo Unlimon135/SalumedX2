@@ -2,8 +2,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.contrib.auth.models import User
-from django.contrib.auth import login
 from django.db import IntegrityError
+from rest_framework_simplejwt.tokens import RefreshToken
 from login.models import Medico, Paciente
 from login.serializers import MedicoSerializer, PacienteSerializer, UserSerializer
 
@@ -41,8 +41,17 @@ def signup(request):
             ubicacion = data.get('ubicacion_consultorio', '')
             medico = Medico.objects.create(user=user, numero_licencia=numero_licencia,
                                            institucion=institucion, ubicacion_consultorio=ubicacion)
-            login(request, user)
-            return Response({'success': True, 'tipo_usuario': 'medico', 'perfil': MedicoSerializer(medico).data}, status=201)
+            
+            # Generar tokens JWT
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'success': True,
+                'tipo_usuario': 'medico',
+                'perfil': MedicoSerializer(medico).data,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh)
+            }, status=201)
         else:
             fecha_nacimiento = data.get('fecha_nacimiento', None)
             cedula = data.get('cedula', '')
@@ -50,8 +59,17 @@ def signup(request):
             telefono = data.get('telefono', '')
             paciente = Paciente.objects.create(user=user, fecha_nacimiento=fecha_nacimiento,
                                                cedula=cedula, direccion=direccion, telefono=telefono)
-            login(request, user)
-            return Response({'success': True, 'tipo_usuario': 'paciente', 'perfil': PacienteSerializer(paciente).data}, status=201)
+            
+            # Generar tokens JWT
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'success': True,
+                'tipo_usuario': 'paciente',
+                'perfil': PacienteSerializer(paciente).data,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh)
+            }, status=201)
     
     except IntegrityError:
         return Response({'success': False, 'error': 'El usuario ya existe'}, status=400)

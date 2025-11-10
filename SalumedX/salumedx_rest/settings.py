@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'login',
     'rest_framework',
+    'rest_framework_simplejwt',  # JWT
     'corsheaders',  # CORS para peticiones externas
 ]
 
@@ -142,24 +143,33 @@ CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if not CORS_ALLOW_ALL_ORIGINS else []
 CORS_ALLOW_CREDENTIALS = True
 
-# Cookie Configuration para desarrollo con Sinatra
-# Permite cookies desde HTTP (localhost) a HTTPS (Render)
-SESSION_COOKIE_SECURE = False  # False permite HTTP en desarrollo
-SESSION_COOKIE_HTTPONLY = True  # Seguridad: solo accesible por HTTP, no por JS
-SESSION_COOKIE_SAMESITE = 'None'  # None permite cookies cross-site (requiere Secure en producción)
+# Ya no necesitamos configuración de cookies con JWT
+# JWT se envía en headers, no en cookies
 
-CSRF_COOKIE_SECURE = False  # False permite HTTP en desarrollo  
-CSRF_COOKIE_HTTPONLY = False  # False permite que JS lea el token
-CSRF_COOKIE_SAMESITE = 'None'  # None permite cookies cross-site
-
-# Django REST Framework
+# Django REST Framework con JWT
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
+}
+
+# Configuración de JWT
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=5),  # Token de acceso válido por 5 horas
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),   # Token de refresco válido por 7 días
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
 }
 
 # Default primary key field type
