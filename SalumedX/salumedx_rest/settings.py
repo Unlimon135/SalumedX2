@@ -142,6 +142,16 @@ CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if not CORS_ALLOW_ALL_ORIGINS else []
 CORS_ALLOW_CREDENTIALS = True
 
+# Cookie Configuration para desarrollo con Sinatra
+# Permite cookies desde HTTP (localhost) a HTTPS (Render)
+SESSION_COOKIE_SECURE = False  # False permite HTTP en desarrollo
+SESSION_COOKIE_HTTPONLY = True  # Seguridad: solo accesible por HTTP, no por JS
+SESSION_COOKIE_SAMESITE = 'Lax'  # Permite cookies entre sitios en peticiones GET
+
+CSRF_COOKIE_SECURE = False  # False permite HTTP en desarrollo  
+CSRF_COOKIE_HTTPONLY = False  # False permite que JS lea el token
+CSRF_COOKIE_SAMESITE = 'Lax'  # Permite cookies entre sitios
+
 # Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
