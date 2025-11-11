@@ -143,13 +143,12 @@ CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if not CORS_ALLOW_ALL_ORIGINS else []
 CORS_ALLOW_CREDENTIALS = True
 
-# Ya no necesitamos configuración de cookies con JWT
-# JWT se envía en headers, no en cookies
-
-# Django REST Framework con JWT
+# Django REST Framework con JWT y SessionAuthentication (dual support)
+# Soporta tanto JWT (para Sinatra/GraphQL) como Session (para frontend local durante migración)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # ⬅️ Agregado para soporte de cookies
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
@@ -171,6 +170,12 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
 }
+
+# Configuración de sesiones (para soporte temporal de cookies durante migración a JWT)
+SESSION_COOKIE_SECURE = False  # True solo en producción con HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 18000  # 5 horas (igual que access token)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
