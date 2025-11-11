@@ -37,10 +37,10 @@ def producto_farmacia_list(request):
         # Filtro por nombre de producto (búsqueda en nombre comercial o genérico)
         nombre = request.query_params.get('nombre')
         if nombre:
+            from django.db.models import Q
             queryset = queryset.filter(
-                producto__nombre_comercial__icontains=nombre
-            ) | queryset.filter(
-                producto__nombre_generico__icontains=nombre
+                Q(producto__nombre_comercial__icontains=nombre) |
+                Q(producto__nombre_generico__icontains=nombre)
             )
         
         # Ordenar por precio (ascendente por defecto)
@@ -99,7 +99,6 @@ def comparar_precios(request):
                     'id': producto.id_producto,
                     'nombre_comercial': producto.nombre_comercial,
                     'nombre_generico': producto.nombre_generico,
-                    'precio_base': str(producto.precio_base)
                 },
                 'precios_por_farmacia': [],
                 'mensaje': 'Este producto aún no tiene precios registrados en farmacias'
@@ -118,7 +117,6 @@ def comparar_precios(request):
                 'id': producto.id_producto,
                 'nombre_comercial': producto.nombre_comercial,
                 'nombre_generico': producto.nombre_generico,
-                'precio_base': str(producto.precio_base),
                 'presentacion': producto.presentacion,
                 'concentracion': producto.concentracion
             },
