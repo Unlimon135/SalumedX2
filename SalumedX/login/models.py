@@ -72,6 +72,7 @@ class Producto(models.Model):
     presentacion = models.CharField(max_length=100)
     concentracion = models.CharField(max_length=100)
     requiere_receta = models.BooleanField(default=False)
+    precio_base = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Precio de referencia del producto")
 
     def __str__(self):
         return self.nombre_comercial
@@ -95,6 +96,26 @@ class Sucursal(models.Model):
 
     def __str__(self):
         return f"Sucursal de {self.farmacia.nombre_comercial}"
+
+
+class ProductoFarmacia(models.Model):
+    """
+    Tabla intermedia que define el precio de un producto en una farmacia específica.
+    Solo el admin puede gestionar estos precios.
+    """
+    id_producto_farmacia = models.AutoField(primary_key=True)
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='precios_por_farmacia')
+    farmacia = models.ForeignKey(Farmacia, on_delete=models.CASCADE, related_name='productos_disponibles')
+    precio = models.DecimalField(max_digits=10, decimal_places=2, help_text="Precio del producto en esta farmacia")
+    fecha_actualizacion = models.DateTimeField(auto_now=True, help_text="Última actualización del precio")
+
+    class Meta:
+        unique_together = ('producto', 'farmacia')  # Un producto solo puede tener un precio por farmacia
+        verbose_name = 'Precio de Producto por Farmacia'
+        verbose_name_plural = 'Precios de Productos por Farmacia'
+
+    def __str__(self):
+        return f"{self.producto.nombre_comercial} en {self.farmacia.nombre_comercial} - ${self.precio}"
 
 
 class Receta(models.Model):
@@ -136,16 +157,35 @@ class DetalleReceta(models.Model):
 
 
 class DetallePrescripcion(models.Model):
+    """
+    Representa el resultado de una búsqueda de precios para un medicamento recetado.
+    El precio_encontrado se obtiene de ProductoFarmacia o se registra manualmente si proviene de fuentes externas.
+    """
     id_detalle_prescripcion = models.AutoField(primary_key=True)
-    detalle_receta = models.ForeignKey(DetalleReceta, on_delete=models.CASCADE)
+    detalle_receta = models.ForeignKey(DetalleReceta, on_delete=models.CASCADE, related_name='resultados_busqueda')
+    producto_farmacia = models.ForeignKey(
+        'ProductoFarmacia', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="Referencia al precio oficial en ProductoFarmacia (si existe)"
+    )
     farmacia = models.ForeignKey(Farmacia, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    precio_encontrado = models.DecimalField(max_digits=10, decimal_places=2)
-    distancia = models.DecimalField(max_digits=6, decimal_places=2)
+    precio_encontrado = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        help_text="Precio encontrado (puede venir de ProductoFarmacia o de fuentes externas)"
+    )
+    distancia = models.DecimalField(max_digits=6, decimal_places=2, help_text="Distancia en km desde el paciente")
     fecha_consulta = models.DateTimeField(auto_now_add=True)
-    fuente = models.CharField(max_length=150)
+    fuente = models.CharField(max_length=150, help_text="De dónde proviene el precio (ej: 'Base de datos', 'Web scraping', etc.)")
+
+    class Meta:
+        verbose_name = 'Detalle de Prescripción'
+        verbose_name_plural = 'Detalles de Prescripciones'
 
     def __str__(self):
-        return f"{self.producto.nombre_comercial} en {self.farmacia.nombre_comercial}"
+        return f"{self.producto.nombre_comercial} en {self.farmacia.nombre_comercial} - ${self.precio_encontrado}"
 
 

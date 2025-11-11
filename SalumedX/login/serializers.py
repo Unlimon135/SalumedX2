@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
-	Medico, Paciente, Producto, Farmacia, Sucursal, Receta, DetalleReceta, DetallePrescripcion
+	Medico, Paciente, Producto, Farmacia, Sucursal, Receta, DetalleReceta, DetallePrescripcion, ProductoFarmacia
 )
 
 class UserSerializer(serializers.ModelSerializer):
@@ -35,6 +35,13 @@ class FarmaciaSerializer(serializers.ModelSerializer):
 		model = Farmacia
 		fields = '__all__'
 
+class ProductoFarmaciaSerializer(serializers.ModelSerializer):
+	producto = ProductoSerializer(read_only=True)
+	farmacia = FarmaciaSerializer(read_only=True)
+	class Meta:
+		model = ProductoFarmacia
+		fields = '__all__'
+
 class SucursalSerializer(serializers.ModelSerializer):
 	farmacia = FarmaciaSerializer(read_only=True)
 	class Meta:
@@ -59,6 +66,7 @@ class DetallePrescripcionSerializer(serializers.ModelSerializer):
 	detalle_receta = DetalleRecetaSerializer(read_only=True)
 	farmacia = FarmaciaSerializer(read_only=True)
 	producto = ProductoSerializer(read_only=True)
+	producto_farmacia = ProductoFarmaciaSerializer(read_only=True)
 	class Meta:
 		model = DetallePrescripcion
 		fields = '__all__'

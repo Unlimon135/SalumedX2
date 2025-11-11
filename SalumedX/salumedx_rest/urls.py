@@ -24,6 +24,7 @@ from login.views import (
     detalle_prescripcion, paciente_info, medico_info,
     productos, farmacias, sucursales
 )
+from login.views.producto_farmacia_view import producto_farmacia_list, comparar_precios
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -40,6 +41,8 @@ urlpatterns = [
     path('productos/', productos, name='productos'),
     path('farmacias/', farmacias, name='farmacias'),
     path('sucursales/', sucursales, name='sucursales'),
+    path('productos-farmacias/', producto_farmacia_list, name='producto_farmacia_list'),
+    path('comparar-precios/', comparar_precios, name='comparar_precios'),
     # DRF browsable API login (optional)
     path('api-auth/', include('rest_framework.urls'))
 ]
