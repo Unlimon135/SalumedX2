@@ -72,7 +72,6 @@ class Producto(models.Model):
     presentacion = models.CharField(max_length=100)
     concentracion = models.CharField(max_length=100)
     requiere_receta = models.BooleanField(default=False)
-    precio_base = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Precio de referencia del producto")
 
     def __str__(self):
         return self.nombre_comercial
@@ -187,69 +186,5 @@ class DetallePrescripcion(models.Model):
 
     def __str__(self):
         return f"{self.producto.nombre_comercial} en {self.farmacia.nombre_comercial} - ${self.precio_encontrado}"
-
-
-class ConsultaProducto(models.Model):
-    """
-    Registra búsquedas/consultas de precios de usuarios (con o sin receta).
-    Útil para:
-    - Historial de búsquedas de usuarios registrados
-    - Analítica de productos más consultados
-    - Favoritos o productos de interés
-    - Registros de usuarios anónimos (user=None)
-    """
-    id_consulta = models.AutoField(primary_key=True)
-    user = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        related_name='consultas_productos',
-        help_text="Usuario que realizó la consulta (null si es anónimo)"
-    )
-    producto = models.ForeignKey(
-        Producto, 
-        on_delete=models.CASCADE,
-        related_name='consultas'
-    )
-    farmacia = models.ForeignKey(
-        Farmacia, 
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        help_text="Farmacia consultada (opcional si es búsqueda general)"
-    )
-    producto_farmacia = models.ForeignKey(
-        ProductoFarmacia,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="Referencia al precio oficial consultado"
-    )
-    precio_visto = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        help_text="Precio que vio el usuario en el momento de la consulta"
-    )
-    origen = models.CharField(
-        max_length=50,
-        default='public_search',
-        help_text="Origen de la consulta: 'public_search', 'user_interest', 'saved', 'comparison'"
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = 'Consulta de Producto'
-        verbose_name_plural = 'Consultas de Productos'
-        ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['user', '-created_at']),
-            models.Index(fields=['producto', '-created_at']),
-        ]
-
-    def __str__(self):
-        user_display = self.user.username if self.user else 'Anónimo'
-        farmacia_display = self.farmacia.nombre_comercial if self.farmacia else 'General'
-        return f"{user_display} - {self.producto.nombre_comercial} en {farmacia_display}"
 
 

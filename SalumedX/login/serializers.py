@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
-	Medico, Paciente, Producto, Farmacia, Sucursal, Receta, DetalleReceta, DetallePrescripcion, ProductoFarmacia, ConsultaProducto
+	Medico, Paciente, Producto, Farmacia, Sucursal, Receta, DetalleReceta, DetallePrescripcion, ProductoFarmacia
 )
 
 class UserSerializer(serializers.ModelSerializer):
@@ -70,19 +70,3 @@ class DetallePrescripcionSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = DetallePrescripcion
 		fields = '__all__'
-
-class ConsultaProductoSerializer(serializers.ModelSerializer):
-	user = UserSerializer(read_only=True)
-	producto = ProductoSerializer(read_only=True)
-	farmacia = FarmaciaSerializer(read_only=True)
-	producto_farmacia = ProductoFarmaciaSerializer(read_only=True)
-	
-	# Campos para escritura (IDs)
-	producto_id = serializers.IntegerField(write_only=True)
-	farmacia_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
-	producto_farmacia_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
-	
-	class Meta:
-		model = ConsultaProducto
-		fields = '__all__'
-		read_only_fields = ('id_consulta', 'created_at', 'user')

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Producto, Farmacia, Sucursal, ProductoFarmacia, Medico, Paciente, Receta, DetalleReceta, DetallePrescripcion, ConsultaProducto
+from .models import Producto, Farmacia, Sucursal, ProductoFarmacia, Medico, Paciente, Receta, DetalleReceta, DetallePrescripcion
 
 # Register your models here.
 
@@ -28,7 +28,7 @@ class ProductoFarmaciaAdmin(admin.ModelAdmin):
 # Configuración mejorada para Producto
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ('nombre_comercial', 'nombre_generico', 'categoria', 'precio_base', 'requiere_receta')
+    list_display = ('nombre_comercial', 'nombre_generico', 'categoria', 'requiere_receta')
     list_filter = ('categoria', 'requiere_receta')
     search_fields = ('nombre_comercial', 'nombre_generico', 'principio_activo')
     ordering = ('nombre_comercial',)
@@ -52,34 +52,3 @@ admin.site.register(Paciente)
 admin.site.register(Receta)
 admin.site.register(DetalleReceta)
 admin.site.register(DetallePrescripcion)
-
-# Configuración para ConsultaProducto
-@admin.register(ConsultaProducto)
-class ConsultaProductoAdmin(admin.ModelAdmin):
-    list_display = ('id_consulta', 'user_display', 'producto', 'farmacia', 'precio_visto', 'origen', 'created_at')
-    list_filter = ('origen', 'created_at', 'farmacia', 'producto__categoria')
-    search_fields = ('user__username', 'producto__nombre_comercial', 'producto__nombre_generico', 'farmacia__nombre_comercial')
-    readonly_fields = ('created_at',)
-    date_hierarchy = 'created_at'
-    ordering = ('-created_at',)
-    
-    fieldsets = (
-        ('Usuario', {
-            'fields': ('user',)
-        }),
-        ('Producto Consultado', {
-            'fields': ('producto', 'farmacia', 'producto_farmacia')
-        }),
-        ('Detalles de la Consulta', {
-            'fields': ('precio_visto', 'origen')
-        }),
-        ('Metadata', {
-            'fields': ('created_at',),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def user_display(self, obj):
-        return obj.user.username if obj.user else 'Anónimo'
-    user_display.short_description = 'Usuario'
-    user_display.admin_order_field = 'user__username'
