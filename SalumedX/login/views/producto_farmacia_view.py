@@ -24,13 +24,13 @@ def producto_farmacia_list(request):
     try:
         queryset = ProductoFarmacia.objects.select_related('producto', 'farmacia').all()
         
-        # Filtro por producto
-        producto_id = request.query_params.get('producto')
+        # Filtro por producto (acepta 'producto' o 'id_producto')
+        producto_id = request.query_params.get('producto') or request.query_params.get('id_producto')
         if producto_id:
             queryset = queryset.filter(producto_id=producto_id)
         
-        # Filtro por farmacia
-        farmacia_id = request.query_params.get('farmacia')
+        # Filtro por farmacia (acepta 'farmacia' o 'id_farmacia')
+        farmacia_id = request.query_params.get('farmacia') or request.query_params.get('id_farmacia')
         if farmacia_id:
             queryset = queryset.filter(farmacia_id=farmacia_id)
         
