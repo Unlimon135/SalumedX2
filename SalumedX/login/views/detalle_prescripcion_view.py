@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from login.models import DetallePrescripcion, DetalleReceta, Farmacia, Producto
+from login.models import DetallePrescripcion, DetalleReceta, Farmacia, Producto, ProductoFarmacia
 from login.serializers import DetallePrescripcionSerializer
 
 
@@ -96,14 +96,32 @@ def detalle_prescripcion(request):
         except Producto.DoesNotExist:
             return Response({'error': 'Producto no encontrado.'}, status=404)
         
+        # Buscar si existe ProductoFarmacia para esta combinación
+        producto_farmacia_obj = None
+        precio_a_usar = payload.get('precio_encontrado', 0)
+        fuente_precio = payload.get('fuente', 'Manual')
+        
+        try:
+            producto_farmacia_obj = ProductoFarmacia.objects.get(
+                producto=producto,
+                farmacia=farmacia
+            )
+            # Si existe ProductoFarmacia, usar su precio actualizado
+            precio_a_usar = producto_farmacia_obj.precio
+            fuente_precio = 'ProductoFarmacia (precio oficial)'
+        except ProductoFarmacia.DoesNotExist:
+            # No existe precio oficial, usar el precio manual del payload
+            pass
+        
         # Crear el detalle de prescripción
         detalle_prescripcion = DetallePrescripcion.objects.create(
             detalle_receta=detalle_receta,
             farmacia=farmacia,
             producto=producto,
-            precio_encontrado=payload.get('precio_encontrado', 0),
+            producto_farmacia=producto_farmacia_obj,  # Asignar la referencia si existe
+            precio_encontrado=precio_a_usar,
             distancia=payload.get('distancia', 0),
-            fuente=payload.get('fuente', '')
+            fuente=fuente_precio
         )
         
         result = DetallePrescripcionSerializer(detalle_prescripcion).data
