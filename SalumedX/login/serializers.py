@@ -67,6 +67,37 @@ class DetallePrescripcionSerializer(serializers.ModelSerializer):
 	farmacia = FarmaciaSerializer(read_only=True)
 	producto = ProductoSerializer(read_only=True)
 	producto_farmacia = ProductoFarmaciaSerializer(read_only=True)
+	
 	class Meta:
 		model = DetallePrescripcion
 		fields = '__all__'
+	
+	def to_representation(self, instance):
+		"""
+		Sobrescribe el método para usar el precio de ProductoFarmacia si existe,
+		en lugar del precio_encontrado guardado.
+		"""
+		representation = super().to_representation(instance)
+		
+		# Si existe producto_farmacia, usar su precio actualizado
+		if instance.producto_farmacia:
+			representation['precio_encontrado'] = str(instance.producto_farmacia.precio)
+			representation['precio_origen'] = 'ProductoFarmacia (precio oficial)'
+		# Si no existe pero podemos buscarlo dinámicamente
+		elif instance.producto and instance.farmacia:
+			try:
+				from login.models import ProductoFarmacia
+				producto_farmacia = ProductoFarmacia.objects.get(
+					producto=instance.producto,
+					farmacia=instance.farmacia
+				)
+				representation['precio_encontrado'] = str(producto_farmacia.precio)
+				representation['precio_origen'] = 'ProductoFarmacia (precio oficial actualizado)'
+			except ProductoFarmacia.DoesNotExist:
+				# Mantener el precio_encontrado original
+				representation['precio_origen'] = f'Manual/Scraping - {instance.fuente}'
+		else:
+			representation['precio_origen'] = f'Manual/Scraping - {instance.fuente}'
+		
+		return representation
+
