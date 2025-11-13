@@ -25,7 +25,6 @@ from login.views import (
     productos, farmacias, sucursales
 )
 from login.views.producto_farmacia_view import producto_farmacia_list, comparar_precios
-from login.views.admin_vue_view import admin_vue, admin_initial_data
 from login.views.admin_api_view import (
     admin_productos_list, admin_farmacias_list, 
     admin_producto_farmacia, admin_producto_farmacia_delete,
