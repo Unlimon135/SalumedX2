@@ -1,5 +1,35 @@
 # API de Administración - Documentación para Frontend Vue
 
+## ⚠️ Problemas Comunes en Render
+
+### 404 Not Found en `/api/admin/productos/`
+
+Si obtienes 404 en Render, verifica:
+
+1. **Las migraciones NO se aplicaron en producción**
+   ```bash
+   # En Render Dashboard > Shell (si tienes plan pago) o en Build Command:
+   python manage.py migrate
+   ```
+
+2. **El código NO se actualizó en Render**
+   - Verifica que hiciste `git push origin main`
+   - Verifica en Render > Deploys que el último deploy terminó exitosamente
+   - Revisa los logs del deploy
+
+3. **Prueba primero el health check (NO requiere auth)**
+   ```
+   GET https://salumedx-rest.onrender.com/api/admin/health/
+   ```
+   Si este también da 404, el problema es que las URLs no están registradas.
+
+4. **ALLOWED_HOSTS en settings.py**
+   ```python
+   ALLOWED_HOSTS = ['salumedx-rest.onrender.com', 'localhost', '127.0.0.1']
+   ```
+
+---
+
 ## Autenticación
 
 Todos los endpoints bajo `/api/admin/*` requieren:
@@ -63,6 +93,27 @@ localStorage.setItem('access_token', data.access)
 
 ## Endpoints Disponibles
 
+### 0. Health Check (sin autenticación)
+
+**GET** `/api/admin/health/`
+
+Endpoint público para verificar que la API funciona.
+
+**Ejemplo:**
+```javascript
+const response = await fetch('https://salumedx-rest.onrender.com/api/admin/health/')
+const data = await response.json()
+/*
+{
+  "success": true,
+  "message": "Admin API is working!",
+  "endpoints": [...]
+}
+*/
+```
+
+---
+
 ### 1. Listar Productos con Precios
 
 **GET** `/api/admin/productos/`
@@ -113,6 +164,57 @@ const data = await response.json()
 
 ---
 
+### 1b. Crear Producto
+
+**POST** `/api/admin/productos/`
+
+Crea un nuevo producto.
+
+**Body (JSON):**
+```json
+{
+  "nombre_generico": "Ibuprofeno",
+  "nombre_comercial": "Advil",
+  "principio_activo": "Ibuprofeno",
+  "categoria": "Analgésicos",
+  "requiere_receta": false
+}
+```
+
+**Ejemplo:**
+```javascript
+const response = await fetch('https://tu-servidor.com/api/admin/productos/', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    nombre_generico: "Paracetamol",
+    nombre_comercial: "Tylenol",
+    principio_activo: "Paracetamol",
+    categoria: "Analgésicos",
+    requiere_receta: false
+  })
+})
+
+const data = await response.json()
+/*
+{
+  "success": true,
+  "message": "Producto creado correctamente",
+  "producto": {
+    "id_producto": 15,
+    "nombre_generico": "Paracetamol",
+    "nombre_comercial": "Tylenol",
+    ...
+  }
+}
+*/
+```
+
+---
+
 ### 2. Listar Farmacias
 
 **GET** `/api/admin/farmacias/`
@@ -138,6 +240,52 @@ const data = await response.json()
     }
   ],
   "total": 1
+}
+*/
+```
+
+---
+
+### 2b. Crear Farmacia
+
+**POST** `/api/admin/farmacias/`
+
+Crea una nueva farmacia.
+
+**Body (JSON):**
+```json
+{
+  "nombre_comercial": "Farmacia Cruz Azul",
+  "direccion": "Calle Principal 123",
+  "telefono": "0999999999"
+}
+```
+
+**Ejemplo:**
+```javascript
+const response = await fetch('https://tu-servidor.com/api/admin/farmacias/', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    nombre_comercial: "Farmacia Económica",
+    direccion: "Av. Libertad 456",
+    telefono: "0987654321"
+  })
+})
+
+const data = await response.json()
+/*
+{
+  "success": true,
+  "message": "Farmacia creada correctamente",
+  "farmacia": {
+    "id_farmacia": 10,
+    "nombre_comercial": "Farmacia Económica",
+    ...
+  }
 }
 */
 ```

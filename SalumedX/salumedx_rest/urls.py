@@ -29,7 +29,7 @@ from login.views.admin_vue_view import admin_vue, admin_initial_data
 from login.views.admin_api_view import (
     admin_productos_list, admin_farmacias_list, 
     admin_producto_farmacia, admin_producto_farmacia_delete,
-    admin_stats
+    admin_stats, admin_health_check
 )
 
 urlpatterns = [
@@ -51,6 +51,7 @@ urlpatterns = [
     path('comparar-precios/', comparar_precios, name='comparar_precios'),
 
     # API endpoints para admin (requieren JWT + is_staff)
+    path('api/admin/health/', admin_health_check, name='admin_health_check'),  # Público - para testing
     path('api/admin/productos/', admin_productos_list, name='admin_productos_list'),
     path('api/admin/farmacias/', admin_farmacias_list, name='admin_farmacias_list'),
     path('api/admin/producto-farmacia/', admin_producto_farmacia, name='admin_producto_farmacia'),

@@ -25,12 +25,11 @@ class IsStaff(IsAuthenticated):
         return super().has_permission(request, view) and request.user.is_staff
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsStaff])
 def admin_productos_list(request):
     """
     GET /api/admin/productos/
-    
     Devuelve todos los productos con sus precios (mismo formato que /productos/).
     Requiere: JWT + is_staff=True
     
@@ -38,7 +37,36 @@ def admin_productos_list(request):
     - ?search=nombre
     - ?categoria=categoria
     - ?con_precios=true
+    
+    POST /api/admin/productos/
+    Crea un nuevo producto.
+    Body: {
+        "nombre_generico": "Ibuprofeno",
+        "nombre_comercial": "Advil",
+        "principio_activo": "Ibuprofeno",
+        "categoria": "Analgésicos",
+        "requiere_receta": false
+    }
     """
+    if request.method == 'POST':
+        try:
+            serializer = ProductoSerializer(data=request.data)
+            if serializer.is_valid():
+                producto = serializer.save()
+                return Response({
+                    'success': True,
+                    'message': 'Producto creado correctamente',
+                    'producto': ProductoSerializer(producto).data
+                }, status=status.HTTP_201_CREATED)
+            else:
+                return Response({
+                    'success': False,
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # GET method
     try:
         queryset = Producto.objects.all()
         
@@ -89,15 +117,41 @@ def admin_productos_list(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsStaff])
 def admin_farmacias_list(request):
     """
     GET /api/admin/farmacias/
-    
     Devuelve todas las farmacias.
     Requiere: JWT + is_staff=True
+    
+    POST /api/admin/farmacias/
+    Crea una nueva farmacia.
+    Body: {
+        "nombre_comercial": "Farmacia Cruz Azul",
+        "direccion": "Calle Principal 123",
+        "telefono": "0999999999"
+    }
     """
+    if request.method == 'POST':
+        try:
+            serializer = FarmaciaSerializer(data=request.data)
+            if serializer.is_valid():
+                farmacia = serializer.save()
+                return Response({
+                    'success': True,
+                    'message': 'Farmacia creada correctamente',
+                    'farmacia': FarmaciaSerializer(farmacia).data
+                }, status=status.HTTP_201_CREATED)
+            else:
+                return Response({
+                    'success': False,
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # GET method
     try:
         farmacias = Farmacia.objects.all()
         serializer = FarmaciaSerializer(farmacias, many=True)
@@ -242,3 +296,25 @@ def admin_stats(request):
         })
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([])  # Sin autenticación - endpoint público
+def admin_health_check(request):
+    """
+    GET /api/admin/health/
+    
+    Endpoint de prueba para verificar que la API admin está funcionando.
+    No requiere autenticación.
+    """
+    return Response({
+        'success': True,
+        'message': 'Admin API is working!',
+        'endpoints': [
+            'GET/POST /api/admin/productos/',
+            'GET/POST /api/admin/farmacias/',
+            'GET/POST /api/admin/producto-farmacia/',
+            'DELETE /api/admin/producto-farmacia/<id>/',
+            'GET /api/admin/stats/',
+        ]
+    }, status=status.HTTP_200_OK)
