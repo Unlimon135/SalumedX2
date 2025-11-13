@@ -26,6 +26,11 @@ from login.views import (
 )
 from login.views.producto_farmacia_view import producto_farmacia_list, comparar_precios
 from login.views.admin_vue_view import admin_vue, admin_initial_data
+from login.views.admin_api_view import (
+    admin_productos_list, admin_farmacias_list, 
+    admin_producto_farmacia, admin_producto_farmacia_delete,
+    admin_stats
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -44,9 +49,14 @@ urlpatterns = [
     path('sucursales/', sucursales, name='sucursales'),
     path('productos-farmacias/', producto_farmacia_list, name='producto_farmacia_list'),
     path('comparar-precios/', comparar_precios, name='comparar_precios'),
-    # Vue-based admin SPA
-    path('admin-ui/', admin_vue, name='admin_vue'),
-    path('admin-ui/initial-data/', admin_initial_data, name='admin_initial_data'),
+
+    # API endpoints para admin (requieren JWT + is_staff)
+    path('api/admin/productos/', admin_productos_list, name='admin_productos_list'),
+    path('api/admin/farmacias/', admin_farmacias_list, name='admin_farmacias_list'),
+    path('api/admin/producto-farmacia/', admin_producto_farmacia, name='admin_producto_farmacia'),
+    path('api/admin/producto-farmacia/<int:pk>/', admin_producto_farmacia_delete, name='admin_producto_farmacia_delete'),
+    path('api/admin/stats/', admin_stats, name='admin_stats'),
+
     # DRF browsable API login (optional)
     path('api-auth/', include('rest_framework.urls'))
 ]

@@ -9,4 +9,3 @@ from .utils_view import paciente_info, medico_info
 from .productos_view import productos
 from .farmacias_view import farmacias
 from .sucursales_view import sucursales
-from .admin_vue_view import admin_vue, admin_initial_data
