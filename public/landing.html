@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SaluuMedX Portal</title>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+    :root {
+      --color-primario: #6366f1;
+      --color-primario-dark: #4f46e5;
+      --color-secundario: #14b8a6;
+      --color-acento: #f59e0b;
+      --color-fondo: #f8fafc;
+      --color-texto: #0f172a;
+      --color-texto-secundario: #475569;
+      --color-blanco: #ffffff;
+      --color-borde: #e2e8f0;
+
+      --color-info-fondo: #dbeafe;
+      --color-info-borde: #3b82f6;
+      --color-info-texto: #1e40af;
+      --color-exito-fondo: #d1fae5;
+      --color-exito-borde: #10b981;
+      --color-exito-texto: #065f46;
+      --color-error-fondo: #fee2e2;
+      --color-error-borde: #ef4444;
+      --color-error-texto: #991b1b;
+      --color-warning-fondo: #fef3c7;
+      --color-warning-borde: #f59e0b;
+      --color-warning-texto: #92400e;
+    }
+
+    [data-theme="dark"] {
+      --color-fondo: #0f172a;
+      --color-blanco: #1e293b;
+      --color-texto: #f1f5f9;
+      --color-texto-secundario: #94a3b8;
+      --color-borde: #334155;
+
+      --color-info-fondo: #1e3a8a;
+      --color-info-borde: #3b82f6;
+      --color-info-texto: #dbeafe;
+      --color-exito-fondo: #065f46;
+      --color-exito-borde: #10b981;
+      --color-exito-texto: #d1fae5;
+      --color-error-fondo: #991b1b;
+      --color-error-borde: #ef4444;
+      --color-error-texto: #fee2e2;
+      --color-warning-fondo: #78350f;
+      --color-warning-borde: #f59e0b;
+      --color-warning-texto: #fef3c7;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:"Inter", -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); min-height:100vh; padding:60px 20px 40px; display:flex; align-items:center; justify-content:center; color:var(--color-texto); transition:background .8s cubic-bezier(0.4,0,0.2,1); position:relative; overflow-x:hidden; }
+    body::before { content:''; position:fixed; top:-50%; left:-50%; width:200%; height:200%; background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px); background-size:50px 50px; animation: moveBackground 20s linear infinite; pointer-events:none; z-index:0; }
+    @keyframes moveBackground { 0% { transform:translate(0,0);} 100% { transform:translate(50px,50px);} }
+    [data-theme="dark"] body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); }
+    #app { display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap:32px; width:100%; max-width:1280px; position:relative; z-index:1; }
+    .app-header { grid-column:1 / -1; text-align:center; margin-bottom:20px; }
+    .logo-container { display:inline-flex; align-items:center; gap:16px; padding:16px 32px; background: rgba(255,255,255,0.95); border-radius:20px; box-shadow:0 10px 40px rgba(0,0,0,0.12); backdrop-filter: blur(10px); transition: all .3s ease; }
+    [data-theme="dark"] .logo-container { background: rgba(30,41,59,0.95); }
+    .logo-container:hover { transform: translateY(-4px); box-shadow:0 15px 50px rgba(0,0,0,0.2); }
+    .logo-text { font-size:32px; font-weight:800; background:linear-gradient(135deg,#6366f1,#14b8a6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .theme-toggle { position:fixed; top:24px; right:24px; width:56px; height:56px; border-radius:16px; background:var(--color-blanco); border:2px solid var(--color-borde); box-shadow:0 8px 24px rgba(0,0,0,0.12); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .4s cubic-bezier(0.4,0,0.2,1); z-index:100; }
+    .theme-toggle:hover { transform: rotate(180deg) scale(1.1); box-shadow:0 12px 32px rgba(0,0,0,0.18); }
+    .bulb { fill: var(--color-texto); transition: all .5s ease; }
+    [data-theme="dark"] .bulb { fill:#fbbf24; filter: drop-shadow(0 0 12px #fbbf24); }
+    .card { background: rgba(255,255,255,0.98); backdrop-filter: blur(20px); border-radius:24px; padding:40px; border:1px solid rgba(226,232,240,0.8); box-shadow:0 20px 60px rgba(0,0,0,0.08); transition: all .4s cubic-bezier(0.4,0,0.2,1); position:relative; overflow:hidden; }
+    .card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg,var(--color-primario),var(--color-secundario)); transform:scaleX(0); transform-origin:left; transition: transform .4s ease; }
+    .card:hover::before { transform:scaleX(1); }
+    [data-theme="dark"] .card { background: rgba(30,41,59,0.95); border:1px solid rgba(255,255,255,0.05); box-shadow:0 20px 60px rgba(0,0,0,0.4); }
+    .card:hover { transform: translateY(-8px); box-shadow:0 30px 80px rgba(0,0,0,0.15); }
+    h1 { font-size:28px; font-weight:800; background:linear-gradient(135deg,var(--color-primario),var(--color-secundario)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin:0; letter-spacing:-.5px; }
+    .emoji-icon { font-size:48px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.1)); animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-8px);} }
+    p { color:var(--color-texto-secundario); font-size:15px; margin-bottom:28px; line-height:1.7; font-weight:500; }
+    .input-group { position:relative; margin-bottom:16px; }
+    .input-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:20px; pointer-events:none; transition: all .3s ease; }
+    input { width:100%; padding:16px 16px 16px 52px; border-radius:14px; border:2px solid var(--color-borde); font-size:15px; font-weight:500; background:var(--color-fondo); color:var(--color-texto); transition: all .3s cubic-bezier(0.4,0,0.2,1); font-family:inherit; }
+    input:focus { border-color:var(--color-primario); outline:none; box-shadow:0 0 0 4px rgba(99,102,241,0.1); background:var(--color-blanco); transform:translateY(-2px); }
+    button { position:relative; background:linear-gradient(135deg,var(--color-primario),var(--color-primario-dark)); border:none; color:#fff; padding:16px 32px; border-radius:14px; cursor:pointer; font-weight:700; font-size:15px; transition: all .3s cubic-bezier(0.4,0,0.2,1); width:100%; font-family:inherit; letter-spacing:.3px; overflow:hidden; box-shadow:0 10px 30px rgba(99,102,241,0.3); }
+    button:hover:not(:disabled){ transform:translateY(-3px); box-shadow:0 15px 40px rgba(99,102,241,0.4); }
+    button:disabled { background:linear-gradient(135deg,#9ca3af,#6b7280); cursor:not-allowed; opacity:.6; }
+    ul { list-style:none; margin-top:24px; padding:0; }
+    li { background:var(--color-fondo); border:2px solid var(--color-borde); border-radius:16px; padding:20px 24px; margin-bottom:12px; transition:all .3s cubic-bezier(0.4,0,0.2,1); position:relative; overflow:hidden; }
+    li:hover { background:var(--color-blanco); border-color:var(--color-primario); transform:translateX(8px) scale(1.02); box-shadow:0 8px 24px rgba(0,0,0,0.08); }
+    li strong { color:var(--color-primario); font-size:17px; display:block; margin-bottom:6px; }
+    .mensaje { margin-top:24px; font-size:14px; padding:16px 20px; border-radius:12px; font-weight:600; border-left:4px solid; display:flex; gap:12px; align-items:center; }
+    .mensaje.info { background:#dbeafe; border-color:#3b82f6; color:#1e40af; }
+    .mensaje.exito { background:#d1fae5; border-color:#10b981; color:#065f46; }
+    .mensaje.error { background:#fee2e2; border-color:#ef4444; color:#991b1b; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="app-header">
+      <div class="logo-container">
+        <span class="emoji-icon" style="animation:none; font-size:36px;">🏥</span>
+        <span class="logo-text">SaluuMedX</span>
+      </div>
+    </div>
+    <div class="theme-toggle" @click="toggleTheme" :title="isDark ? 'Modo claro' : 'Modo oscuro'">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path class="bulb" d="M9 21h6v-1H9v1zm3-19a7 7 0 0 0-7 7c0 2.5 1.2 4.7 3 6v3h8v-3c1.8-1.3 3-3.5 3-6a7 7 0 0 0-7-7z"/></svg>
+    </div>
+    <div class="card" ref="card1">
+      <div class="card-header"><span class="emoji-icon">🩺</span><h1>Generar Receta</h1></div>
+      <p>Crea recetas médicas profesionales en formato PDF con un solo clic.</p>
+      <button @click="generarPDF" :disabled="cargando" ref="btnPDF">{{ cargando ? 'Generando...' : '📄 Generar Receta PDF' }}</button>
+      <div v-if="mensaje.texto" class="mensaje" :class="mensaje.tipo"><span>{{ mensaje.icono }}</span><span>{{ mensaje.texto }}</span></div>
+    </div>
+    <div class="card" ref="card2">
+      <div class="card-header"><span class="emoji-icon">💊</span><h1>Buscar Productos</h1></div>
+      <p>Encuentra productos farmacéuticos por nombre en tiempo real.</p>
+      <div class="input-group">
+        <input v-model.trim="nombreProducto" placeholder="Ej: Paracetamol" @keyup.enter="consultarProductos" :disabled="cargandoConsulta" />
+        <span class="input-icon">🔍</span>
+      </div>
+      <button @click="consultarProductos" :disabled="cargandoConsulta" ref="btnSearch">{{ cargandoConsulta ? 'Buscando...' : '🔎 Buscar Productos' }}</button>
+      <div v-if="mensajeConsulta.texto" class="mensaje" :class="mensajeConsulta.tipo"><span>{{ mensajeConsulta.icono }}</span><span>{{ mensajeConsulta.texto }}</span></div>
+      <ul v-if="productos.length > 0" ref="resultsList">
+        <li v-for="p in productos" :key="p.id">
+          <strong>{{ p.nombre }}</strong>
+          <div>{{ p.presentacion || 'Sin presentación' }}</div>
+          <small><span class="precio">💲 ${{ p.precio?.toFixed(2) || '0.00' }}</span> <span class="farmacia">🏥 ID: {{ p.farmacia_id }}</span></small>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    const { createApp, ref, onMounted, watch, nextTick } = Vue;
+    createApp({
+      setup(){
+        const mensaje=ref({texto:'', tipo:'info', icono:''});
+        const cargando=ref(false);
+        const nombreProducto=ref('');
+        const mensajeConsulta=ref({texto:'', tipo:'info', icono:''});
+        const cargandoConsulta=ref(false);
+        const productos=ref([]);
+        const isDark=ref(localStorage.getItem('theme')==='dark');
+        const btnPDF=ref(null); const btnSearch=ref(null); const resultsList=ref(null); const card1=ref(null); const card2=ref(null);
+        onMounted(()=>{ document.documentElement.setAttribute('data-theme', isDark.value?'dark':'light'); });
+        const toggleTheme=()=>{ isDark.value=!isDark.value; document.documentElement.setAttribute('data-theme', isDark.value?'dark':'light'); localStorage.setItem('theme', isDark.value?'dark':'light'); };
+        const generarPDF= async ()=>{ cargando.value=true; mensaje.value={texto:'Generando...', tipo:'info', icono:'⏳'}; try { const res=await fetch('http://localhost:4000/graphql',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ query:`mutation { generarRecetaPdf(paciente:{ nombre:"Juan", cedula:"123" }, medico:{ nombre:"Dra", licencia:"LIC-1" }) { mensaje archivo } }` })}); const data=await res.json(); if(data.errors){ mensaje.value={texto:data.errors[0].message, tipo:'error', icono:'❌'}; } else { const pdf=data.data?.generarRecetaPdf?.archivo; if(pdf){ mensaje.value={texto:'PDF generado', tipo:'exito', icono:'✅'}; window.open(pdf,'_blank'); } else { mensaje.value={texto:'Sin archivo PDF', tipo:'error', icono:'⚠️'}; } } } catch(e){ mensaje.value={texto:'Error conexión', tipo:'error', icono:'❌'}; } finally { cargando.value=false; } };
+        const consultarProductos= async ()=>{ if(!nombreProducto.value){ mensajeConsulta.value={texto:'Ingresa un nombre', tipo:'error', icono:'⚠️'}; return; } cargandoConsulta.value=true; productos.value=[]; mensajeConsulta.value={texto:'Buscando...', tipo:'info', icono:'🔍'}; try { const res=await fetch('http://localhost:4000/graphql',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ query:`query($nombre:String!){ buscarProductos(nombre:$nombre){ id nombre precio presentacion farmacia_id } }`, variables:{ nombre:nombreProducto.value } })}); const data=await res.json(); if(data.errors){ mensajeConsulta.value={texto:data.errors[0].message, tipo:'error', icono:'❌'}; } else { productos.value=data.data?.buscarProductos || []; mensajeConsulta.value= productos.value.length? {texto:`${productos.value.length} productos`, tipo:'exito', icono:'✅'} : {texto:'Sin resultados', tipo:'info', icono:'ℹ️'}; } } catch(e){ mensajeConsulta.value={texto:'Error conexión', tipo:'error', icono:'❌'}; } finally { cargandoConsulta.value=false; } };
+        return { mensaje, cargando, generarPDF, nombreProducto, consultarProductos, mensajeConsulta, cargandoConsulta, productos, isDark, toggleTheme, btnPDF, btnSearch, resultsList, card1, card2 };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
