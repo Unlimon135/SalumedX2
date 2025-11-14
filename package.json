@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "dev": "node --loader ts-node/esm src/server.ts",
+    "dev": "node --loader ts-node/esm --no-warnings src/server.ts",
     "build": "tsc"
   },
   "keywords": [],

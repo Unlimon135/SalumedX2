@@ -1,6 +1,9 @@
+// File: websocket_web2/src/models/notification.model.ts
+// Definición de la interfaz Notification
 export interface Notification {
   id?: number;
-  title: string;
+  type: "precio" | "promocion" | "alerta";
   message: string;
-  created_at?: Date;
+  timestamp?: Date;
+  data?: any;
 }

@@ -2,41 +2,726 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Prueba WebSocket</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard SaluMedX - Notificaciones en Tiempo Real</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+  />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .container {
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 1200px;
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ff6b6b;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.connected {
+      background: #51cf66;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 30px;
+    }
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .notification-list {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 12px;
+      padding: 20px;
+      min-height: 300px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .notification-item {
+      background: white;
+      border-left: 4px solid;
+      padding: 15px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .notification-item.product {
+      border-color: #28a745;
+      background: #f0fdf4;
+    }
+
+    .notification-item.pharmacy {
+      border-color: #667eea;
+      background: #f0f4ff;
+    }
+
+    .notification-item.relation {
+      border-color: #fd7e14;
+      background: #fff8f0;
+    }
+
+    .notification-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .notification-icon {
+      font-size: 20px;
+    }
+
+    .notification-item.product .notification-icon { color: #28a745; }
+    .notification-item.pharmacy .notification-icon { color: #667eea; }
+    .notification-item.relation .notification-icon { color: #fd7e14; }
+
+    .notification-time {
+      font-size: 12px;
+      color: #6c757d;
+      margin-bottom: 8px;
+    }
+
+    .notification-content {
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .notification-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 13px;
+      background: rgba(0, 0, 0, 0.02);
+      padding: 10px;
+      border-radius: 6px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .detail-label {
+      color: #6c757d;
+      font-weight: 600;
+    }
+
+    .detail-value {
+      color: #333;
+      font-weight: 500;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-card.product {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .stat-card.pharmacy {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .stat-card.relation {
+      background: linear-gradient(135deg, #fd7e14 0%, #ff922b 100%);
+    }
+
+    .stat-number {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .log-section {
+      grid-column: 1 / -1;
+    }
+
+    .log-output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 12px;
+      padding: 20px;
+      min-height: 250px;
+      max-height: 350px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .log-output::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .log-output::-webkit-scrollbar-track {
+      background: #2d2d2d;
+    }
+
+    .log-output::-webkit-scrollbar-thumb {
+      background: #667eea;
+      border-radius: 4px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 13px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+
+    .btn-clear {
+      background: #dc3545;
+      color: white;
+      flex: 1;
+    }
+
+    .btn-clear:hover {
+      background: #c82333;
+      transform: translateY(-2px);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: #999;
+      font-size: 14px;
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+
+    @media (max-width: 900px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      body {
+        flex-direction: column;
+      }
+    }
+
+    /* ESTILOS DE LOGIN */
+    .login-container {
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 450px;
+      padding: 50px;
+      text-align: center;
+    }
+
+    .login-header {
+      margin-bottom: 40px;
+    }
+
+    .login-header h1 {
+      font-size: 28px;
+      color: #667eea;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .login-header p {
+      color: #6c757d;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s ease;
+      font-family: inherit;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .login-error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+      font-size: 14px;
+    }
+
+    .login-error.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    .login-footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      color: #6c757d;
+      font-size: 12px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
-  <h1>Prueba del servidor WebSocket</h1>
-  <button id="btnGet">Obtener notificaciones</button>
-  <button id="btnAdd">Agregar notificación</button>
-  <pre id="output"></pre>
+  <!-- CONTENEDOR DEL DASHBOARD -->
+  <div class="container" id="dashboardContainer">
+    <div class="header">
+      <h1><i class="bi bi-broadcast"></i> SaluMedX - Dashboard de Notificaciones</h1>
+      <div style="display: flex; gap: 15px; justify-content: center; align-items: center; flex-wrap: wrap;">
+        <div class="status">
+          <span class="status-indicator" id="statusIndicator"></span>
+          <span id="statusText">Conectando...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- ESTADÍSTICAS -->
+      <div class="stats" id="stats" style="grid-column: 1 / -1;">
+        <div class="stat-card product">
+          <div class="stat-number" id="productCount">0</div>
+          <div class="stat-label">📦 Productos Creados</div>
+        </div>
+        <div class="stat-card pharmacy">
+          <div class="stat-number" id="pharmacyCount">0</div>
+          <div class="stat-label">🏥 Farmacias Creadas</div>
+        </div>
+        <div class="stat-card relation">
+          <div class="stat-number" id="relationCount">0</div>
+          <div class="stat-label">🔗 Relaciones Creadas</div>
+        </div>
+      </div>
+
+      <!-- NOTIFICACIONES -->
+      <div class="section">
+        <h3 style="color: #333; display: flex; align-items: center; gap: 10px;">
+          <i class="bi bi-bell-fill" style="color: #28a745;"></i> Productos
+        </h3>
+        <div class="notification-list" id="productNotifications">
+          <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            Esperando notificaciones de productos...
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3 style="color: #333; display: flex; align-items: center; gap: 10px;">
+          <i class="bi bi-bell-fill" style="color: #667eea;"></i> Farmacias
+        </h3>
+        <div class="notification-list" id="pharmacyNotifications">
+          <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            Esperando notificaciones de farmacias...
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3 style="color: #333; display: flex; align-items: center; gap: 10px;">
+          <i class="bi bi-bell-fill" style="color: #fd7e14;"></i> Relaciones
+        </h3>
+        <div class="notification-list" id="relationNotifications">
+          <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            Esperando notificaciones de relaciones...
+          </div>
+        </div>
+      </div>
+
+      <!-- REGISTRO -->
+      <div class="section log-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3 style="color: #333; display: flex; align-items: center; gap: 10px;">
+            <i class="bi bi-terminal"></i> Registro de Eventos
+          </h3>
+          <button class="btn-clear" id="btnClear">
+            <i class="bi bi-trash"></i> Limpiar Log
+          </button>
+        </div>
+        <div class="log-output" id="logOutput"></div>
+      </div>
+    </div>
+  </div>
 
   <script>
-    const socket = new WebSocket('ws://localhost:8080/ws');
-    const output = document.getElementById('output');
+    // ============================================
+    // WEBSOCKET Y DASHBOARD
+    // ============================================
+    let socket;
 
-    socket.onopen = () => {
-      output.innerText += '✅ Conectado al WebSocket\n';
-    };
+    function initializeWebSocket() {
+      socket = new WebSocket('ws://localhost:8080');
+      const logOutput = document.getElementById('logOutput');
+      const productNotifications = document.getElementById('productNotifications');
+      const pharmacyNotifications = document.getElementById('pharmacyNotifications');
+      const relationNotifications = document.getElementById('relationNotifications');
+      const statusIndicator = document.getElementById('statusIndicator');
+      const statusText = document.getElementById('statusText');
+      const btnClear = document.getElementById('btnClear');
 
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      output.innerText += '📩 ' + JSON.stringify(msg, null, 2) + '\n';
-    };
+      let counts = { products: 0, pharmacies: 0, relations: 0 };
 
-    socket.onclose = () => {
-      output.innerText += '🔴 Conexión cerrada\n';
-    };
+      function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString('es-ES');
+        const icon = {
+          'info': '📌',
+          'success': '✅',
+          'error': '❌',
+          'product': '📦',
+          'pharmacy': '🏥',
+          'relation': '🔗'
+        }[type] || '📌';
+        
+        logOutput.innerHTML += `${icon} [${timestamp}] ${message}\n`;
+        logOutput.scrollTop = logOutput.scrollHeight;
+      }
 
-    document.getElementById('btnGet').onclick = () => {
-      socket.send(JSON.stringify({ action: 'get' }));
-    };
+      function addNotificationCard(container, type, data) {
+        if (container.querySelector('.empty-state')) {
+          container.innerHTML = '';
+        }
 
-    document.getElementById('btnAdd').onclick = () => {
-      socket.send(JSON.stringify({
-        action: 'add',
-        data: { title: 'Nueva prueba', message: 'Mensaje generado desde el navegador' }
-      }));
-    };
+        const card = document.createElement('div');
+        card.className = `notification-item ${type}`;
+        
+        const icons = {
+          'product': '📦',
+          'pharmacy': '🏥',
+          'relation': '🔗'
+        };
+
+        const timestamp = new Date().toLocaleTimeString('es-ES');
+        
+        let details = '';
+        if (type === 'product') {
+          details = `
+            <div class="notification-details">
+              <div class="detail-row">
+                <span class="detail-label">ID:</span>
+                <span class="detail-value">${data.id || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Nombre Comercial:</span>
+                <span class="detail-value">${data.nombre_comercial || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Nombre Genérico:</span>
+                <span class="detail-value">${data.nombre_generico || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Precio:</span>
+                <span class="detail-value">$${data.precio || '0.00'}</span>
+              </div>
+            </div>
+          `;
+        } else if (type === 'pharmacy') {
+          details = `
+            <div class="notification-details">
+              <div class="detail-row">
+                <span class="detail-label">ID:</span>
+                <span class="detail-value">${data.id || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Nombre:</span>
+                <span class="detail-value">${data.nombre || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Dirección:</span>
+                <span class="detail-value">${data.direccion || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Teléfono:</span>
+                <span class="detail-value">${data.telefono || 'N/A'}</span>
+              </div>
+            </div>
+          `;
+        } else if (type === 'relation') {
+          details = `
+            <div class="notification-details">
+              <div class="detail-row">
+                <span class="detail-label">ID:</span>
+                <span class="detail-value">${data.id || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Producto ID:</span>
+                <span class="detail-value">${data.producto_id || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Farmacia ID:</span>
+                <span class="detail-value">${data.farmacia_id || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Precio:</span>
+                <span class="detail-value">$${data.precio || '0.00'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Stock:</span>
+                <span class="detail-value">${data.stock || '0'}</span>
+              </div>
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="notification-header">
+            <span class="notification-icon">${icons[type]}</span>
+            <span>${data.mensaje || 'Nueva notificación'}</span>
+          </div>
+          <div class="notification-time">${timestamp}</div>
+          <div class="notification-content"></div>
+          ${details}
+        `;
+
+        container.insertBefore(card, container.firstChild);
+
+        // Limitar a 10 notificaciones visibles
+        while (container.children.length > 10) {
+          container.removeChild(container.lastChild);
+        }
+      }
+
+      function updateStats() {
+        document.getElementById('productCount').textContent = counts.products;
+        document.getElementById('pharmacyCount').textContent = counts.pharmacies;
+        document.getElementById('relationCount').textContent = counts.relations;
+      }
+
+      socket.onopen = () => {
+        log('✨ Conectado al servidor WebSocket', 'success');
+        statusIndicator.classList.add('connected');
+        statusText.innerText = 'Conectado';
+        statusText.style.color = '#51cf66';
+      };
+
+      function updateStats() {
+        document.getElementById('productCount').textContent = counts.products;
+        document.getElementById('pharmacyCount').textContent = counts.pharmacies;
+        document.getElementById('relationCount').textContent = counts.relations;
+      }
+
+      socket.onmessage = (event) => {
+        try {
+          console.log('Mensaje recibido del servidor:', event.data);
+          const message = JSON.parse(event.data);
+          const { event: type, data } = message;
+
+          log(`Evento recibido: ${type}`, type.toLowerCase());
+          console.log('Tipo de evento:', type, 'Datos:', data);
+
+          if (type === 'PRODUCT_CREATED') {
+            counts.products++;
+            addNotificationCard(productNotifications, 'product', data);
+          } else if (type === 'PHARMACY_CREATED') {
+            counts.pharmacies++;
+            addNotificationCard(pharmacyNotifications, 'pharmacy', data);
+          } else if (type === 'PRODUCT_PHARMACY_RELATION_CREATED') {
+            counts.relations++;
+            addNotificationCard(relationNotifications, 'relation', data);
+          }
+
+          updateStats();
+        } catch (e) {
+          log(`Error procesando mensaje: ${e.message}`, 'error');
+          console.error('Error parseando mensaje:', e);
+        }
+      };
+
+      socket.onclose = () => {
+        log('🔌 Conexión cerrada', 'error');
+        statusIndicator.classList.remove('connected');
+        statusText.innerText = 'Desconectado';
+        statusText.style.color = '#ff6b6b';
+      };
+
+      socket.onerror = (error) => {
+        log(`Error de WebSocket: ${error.message || 'desconocido'}`, 'error');
+      };
+
+      btnClear.onclick = () => {
+        logOutput.innerHTML = '';
+        log('📋 Registro limpiado', 'info');
+      };
+
+      // Log inicial
+      log('🚀 Dashboard iniciado', 'info');
+    }
+
+    // Inicializar WebSocket al cargar la página
+    initializeWebSocket();
   </script>
 </body>
 </html>
