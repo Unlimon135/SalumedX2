@@ -147,8 +147,8 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer para información del usuario"""
-    medico = MedicoSerializer(source='medico', read_only=True)
-    paciente = PacienteSerializer(source='paciente', read_only=True)
+    medico = MedicoSerializer(read_only=True)
+    paciente = PacienteSerializer(read_only=True)
     
     class Meta:
         model = User

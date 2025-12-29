@@ -55,34 +55,28 @@ def is_token_revoked(jti):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@ratelimit(key='ip', rate='3/h', method='POST')
+@ratelimit(key='ip', rate='3/h', method='POST', block=True)
 def register_view(request):
-    """
-    POST /auth/register
-    Registrar un nuevo usuario
-    """
+
     serializer = UserRegisterSerializer(data=request.data)
-    
-    if serializer.is_valid():
-        user = serializer.save()
-        
-        # Generar tokens
-        refresh = JWT_RefreshToken.for_user(user)
-        access = refresh.access_token
-        
-        # Guardar refresh token
-        save_refresh_token(user, refresh, request)
-        
-        return Response({
-            'message': 'Usuario registrado exitosamente',
-            'user': UserSerializer(user).data,
-            'tokens': {
-                'access': str(access),
-                'refresh': str(refresh),
-            }
-        }, status=status.HTTP_201_CREATED)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
+
+    user = serializer.save()
+
+    refresh = JWT_RefreshToken.for_user(user)
+    access = refresh.access_token
+
+    save_refresh_token(user, refresh, request)
+
+    return Response({
+        "message": "Usuario registrado exitosamente",
+        "user": UserSerializer(user).data,
+        "tokens": {
+            "access": str(access),
+            "refresh": str(refresh),
+        }
+    }, status=status.HTTP_201_CREATED)
+
 
 
 @api_view(['POST'])
