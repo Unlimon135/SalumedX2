@@ -41,6 +41,14 @@ class GraphqlService < Sinatra::Base
   #   DjangoSessionAuth.paciente.login! if DjangoSessionAuth.paciente.csrf.nil?
   # end
 
+
+  # ========================================
+  # 🔐 Middleware de autenticación para GraphQL
+  # ========================================
+  before '/graphql' do
+    require_auth!
+  end
+
   # Nuevo: Extraer cookies y CSRF token del frontend
   helpers do
     def get_user_cookies
@@ -285,8 +293,8 @@ class GraphqlService < Sinatra::Base
       payload = JSON.parse(body)
       
       result = AuthProxy.logout(
-        access_token: request.env['HTTP_AUTHORIZATION'].gsub(/^Bearer /, ''),
-        refresh_token: payload['refresh_token']
+        access_token: (request.env['HTTP_AUTHORIZATION'] || '').gsub(/^Bearer /, ''),
+        refresh_token: payload['refresh'] || payload['refresh_token']
       )
       
       content_type :json
@@ -313,7 +321,7 @@ class GraphqlService < Sinatra::Base
       payload = JSON.parse(body)
       
       result = AuthProxy.refresh(
-        refresh_token: payload['refresh_token']
+        refresh_token: payload['refresh'] || payload['refresh_token']
       )
       
       content_type :json
