@@ -318,6 +318,52 @@ createApp({
       }
     },
     
+    async checkAuth() {
+      // Verificar si hay token válido al cargar la página
+      if (!this.authToken) return;
+      
+      try {
+        // Intentar verificar con Auth Service primero
+        const authMeUrl = `${this.authBase()}/me`;
+        const res = await axios.get(authMeUrl, {
+          headers: { 'Authorization': `Bearer ${this.authToken}` },
+          validateStatus: () => true,
+          timeout: 5000
+        });
+        
+        if (res.status === 200 && res.data) {
+          console.log('✅ Sesión válida, cargando usuario...');
+          this.username = res.data.username || res.data.user?.username;
+          this.userRole = res.data.role || res.data.user?.role;
+          this.isMedico = ['medico', 'doctor', 'admin'].includes(this.userRole);
+          this.currentView = 'panel';
+          return;
+        } else if ([401, 403].includes(res.status)) {
+          console.warn(`⚠️ Token inválido (${res.status}). Limpiando sesión.`);
+          this.saveAuthTokens(null, null);
+        }
+      } catch (e) {
+        console.log('⚠️ Auth Service no disponible en checkAuth:', e.message);
+      }
+      
+      // Fallback: verificar con Django
+      try {
+        const res = await axios.get(`${this.API_URL}/tasks/`, {
+          headers: { 'Authorization': `Bearer ${this.authToken}` },
+          validateStatus: () => true,
+          timeout: 5000
+        });
+        if (res.status < 400) {
+          this.currentView = 'panel';
+        } else if ([401, 403].includes(res.status)) {
+          console.warn(`⚠️ Token inválido (${res.status}). Limpiando sesión.`);
+          this.saveAuthTokens(null, null);
+        }
+      } catch (e) {
+        console.log('Error verificando autenticación con Django:', this.formatAxiosError(e));
+      }
+    },
+    
     async testAuth() {
       this.clearMessages();
       this.loading = true;
@@ -368,43 +414,108 @@ createApp({
       this.loading = true;
       
       try {
+        // ✅ PRIORIDAD 1: Intentar Auth Service del compañero (Pilar 1 - Segundo Parcial)
+        const authServiceUrl = `${this.authBase()}/login`;
         const payload = {
+          username: this.loginForm.username.trim(),
+          password: this.loginForm.password
+        };
+        
+        console.log('🔐 Intentando login con Auth Service:', authServiceUrl);
+        
+        try {
+          const authResponse = await axios.post(
+            authServiceUrl,
+            payload,
+            {
+              headers: { 'Content-Type': 'application/json' },
+              validateStatus: () => true,
+              timeout: 10000
+            }
+          );
+          
+          console.log('📥 Respuesta Auth Service:', authResponse.status);
+          
+          // Si Auth Service responde exitosamente
+          if (authResponse.status >= 200 && authResponse.status < 300) {
+            const data = authResponse.data;
+            const access = data.access_token || data.access;
+            const refresh = data.refresh_token || data.refresh;
+            
+            if (!access) {
+              throw new Error('Auth Service no devolvió access_token');
+            }
+            
+            this.saveAuthTokens(access, refresh);
+            this.username = this.loginForm.username;
+            
+            // Extraer info del usuario desde la respuesta
+            if (data.user) {
+              this.userRole = data.user.role || 'user';
+              this.isMedico = ['medico', 'doctor', 'admin'].includes(this.userRole);
+              
+              if (this.userRole === 'admin') {
+                this.success = '👑 Sesión iniciada como ADMINISTRADOR - Acceso completo';
+              } else if (this.isMedico) {
+                this.success = '🩺 Sesión iniciada como MÉDICO - Puedes generar recetas';
+              } else {
+                this.success = '👤 Sesión iniciada como PACIENTE - Consulta recetas y precios';
+              }
+            } else {
+              this.success = '✅ ¡Login exitoso con Auth Service!';
+            }
+            
+            console.log('✅ Login exitoso con Auth Service');
+            this.currentView = 'panel';
+            this.loginForm.password = '';
+            return;
+          }
+          
+          // Si Auth Service devuelve error, intentar Django como fallback
+          console.warn('⚠️ Auth Service falló:', authResponse.data?.error || authResponse.data?.message);
+          
+        } catch (authError) {
+          console.warn('⚠️ Auth Service no disponible, intentando fallback a Django:', authError.message);
+        }
+        
+        // ⚠️ FALLBACK: Django API (compatibilidad con P1)
+        console.log('📤 Intentando login fallback en Django:', `${this.API_URL}/signin/`);
+        const djangoPayload = {
           username: this.loginForm.username.trim(),
           email: this.loginForm.username.trim(),
           password: this.loginForm.password,
         };
         
-        console.log('📤 Intentando login en:', `${this.API_URL}/signin/`);
-        const response = await axios.post(
+        const djangoResponse = await axios.post(
           `${this.API_URL}/signin/`,
-          payload,
+          djangoPayload,
           {
             headers: { 'Content-Type': 'application/json' },
             validateStatus: () => true
           }
         );
         
-        console.log('📥 Respuesta login:', response.status, response.statusText);
+        console.log('📥 Respuesta Django:', djangoResponse.status, djangoResponse.statusText);
         
-        if (response.status >= 400) {
-          const errorDetail = response.data?.detail || response.data?.message || response.data?.error;
+        if (djangoResponse.status >= 400) {
+          const errorDetail = djangoResponse.data?.detail || djangoResponse.data?.message || djangoResponse.data?.error;
           if (errorDetail) {
-            throw new Error(`Error ${response.status}: ${errorDetail}`);
+            throw new Error(`Error ${djangoResponse.status}: ${errorDetail}`);
           } else {
-            throw new Error(`Error ${response.status}: ${JSON.stringify(response.data)}`);
+            throw new Error(`Error ${djangoResponse.status}: ${JSON.stringify(djangoResponse.data)}`);
           }
         }
         
-        const access = response.data?.access;
-        const refresh = response.data?.refresh;
+        const access = djangoResponse.data?.access;
+        const refresh = djangoResponse.data?.refresh;
         if (!access) {
           console.warn('⚠️ No se recibió token de acceso en la respuesta');
         } else {
           this.saveAuthTokens(access, refresh);
         }
         
-        console.log('✅ Login exitoso');
-        this.success = '✅ ¡Login exitoso!';
+        console.log('✅ Login exitoso con Django (fallback)');
+        this.success = '✅ ¡Login exitoso! (Fallback Django)';
         this.username = this.loginForm.username;
 
         if (this.username && this.username.toLowerCase && this.username.toLowerCase() === 'admin') {
@@ -416,26 +527,10 @@ createApp({
         }
 
         this.currentView = 'panel';
-
-        // Intento adicional contra el servicio de autenticación; si falla no bloquea el login principal
-        try {
-          const url = `${this.authBase()}/login`;
-          const payload = {
-            username: this.loginForm.username.trim(),
-            password: this.loginForm.password
-          };
-          await axios.post(url, payload, {
-            headers: { 'Content-Type': 'application/json' },
-            validateStatus: () => true
-          });
-        } catch (error) {
-          console.warn('Login secundario falló:', error);
-        }
-
         this.loginForm.password = '';
 
       } catch (error) {
-        console.error('Error al iniciar sesión:', error);
+        console.error('❌ Error al iniciar sesión:', error);
         this.error = error?.message ? `Error al iniciar sesión: ${error.message}` : 'Error al iniciar sesión.';
       } finally {
         this.loading = false;
@@ -457,6 +552,152 @@ createApp({
         this.isMedico = false;
         this.saveAuthTokens(null, null);
         this.success = 'Sesión cerrada correctamente';
+      }
+    },
+    
+    async handleRegister() {
+      this.clearMessages();
+      
+      // Validaciones
+      if (!this.registerForm.username || this.registerForm.username.trim() === '') {
+        this.error = '❌ El nombre de usuario es requerido';
+        return;
+      }
+      
+      if (!this.registerForm.email || this.registerForm.email.trim() === '') {
+        this.error = '❌ El email es requerido';
+        return;
+      }
+      
+      if (!this.registerForm.password) {
+        this.error = '❌ La contraseña es requerida';
+        return;
+      }
+      
+      if (this.registerForm.password !== this.registerForm.password2) {
+        this.error = '❌ Las contraseñas no coinciden';
+        return;
+      }
+      
+      if (this.registerForm.password.length < 8) {
+        this.error = '❌ La contraseña debe tener al menos 8 caracteres';
+        return;
+      }
+      
+      this.loading = true;
+      
+      try {
+        // ✅ PRIORIDAD 1: Intentar Auth Service del compañero (Pilar 1 - Segundo Parcial)
+        const authServiceUrl = `${this.authBase()}/register`;
+        const payload = {
+          username: this.registerForm.username.trim(),
+          email: this.registerForm.email.trim(),
+          password: this.registerForm.password,
+          role: this.registerForm.role || 'paciente'
+        };
+        
+        console.log('🔐 Intentando registro con Auth Service:', authServiceUrl);
+        
+        try {
+          const authResponse = await axios.post(
+            authServiceUrl,
+            payload,
+            {
+              headers: { 'Content-Type': 'application/json' },
+              validateStatus: () => true,
+              timeout: 10000
+            }
+          );
+          
+          console.log('📥 Respuesta Auth Service registro:', authResponse.status);
+          
+          // Si Auth Service responde exitosamente
+          if (authResponse.status >= 200 && authResponse.status < 300) {
+            const data = authResponse.data;
+            
+            if (data.success) {
+              this.success = `✅ ¡Registro exitoso con Auth Service! Redirigiendo al login...`;
+              console.log('✅ Usuario registrado en Auth Service:', data.user);
+              
+              setTimeout(() => {
+                this.currentView = 'login';
+                this.loginForm.username = this.registerForm.username;
+                this.registerForm = {
+                  username: '',
+                  email: '',
+                  password: '',
+                  password2: '',
+                  role: 'paciente'
+                };
+              }, 2000);
+              
+              return;
+            }
+          }
+          
+          // Si Auth Service devuelve error
+          const errorMsg = authResponse.data?.error || authResponse.data?.message || 'Error en el registro';
+          console.warn('⚠️ Auth Service registro falló:', errorMsg);
+          throw new Error(errorMsg);
+          
+        } catch (authError) {
+          console.warn('⚠️ Auth Service no disponible para registro:', authError.message);
+          
+          // Si el Auth Service da error específico, mostrarlo
+          if (authError.response && authError.response.data) {
+            throw new Error(authError.response.data.error || authError.response.data.message || authError.message);
+          }
+          
+          // Si Auth Service no está disponible, intentar fallback a Django
+          console.log('Intentando fallback a Django para registro...');
+        }
+        
+        // ⚠️ FALLBACK: Django API (compatibilidad con P1)
+        console.log('📤 Intentando registro fallback en Django:', `${this.API_URL}/signup/`);
+        
+        const djangoResponse = await axios.post(
+          `${this.API_URL}/signup/`,
+          {
+            username: this.registerForm.username.trim(),
+            email: this.registerForm.email.trim(),
+            password1: this.registerForm.password,
+            password2: this.registerForm.password2,
+            first_name: this.registerForm.username.trim(),
+            tipo_usuario: this.registerForm.role || 'paciente'
+          },
+          {
+            headers: { 'Content-Type': 'application/json' },
+            validateStatus: () => true
+          }
+        );
+        
+        console.log('📥 Respuesta Django registro:', djangoResponse.status);
+        
+        if (djangoResponse.status >= 400) {
+          const errorDetail = djangoResponse.data?.detail || djangoResponse.data?.message || djangoResponse.data?.error;
+          throw new Error(errorDetail || 'No se pudo registrar');
+        }
+        
+        this.success = '✅ ¡Registro exitoso! (Fallback Django) Redirigiendo al login...';
+        console.log('✅ Usuario registrado en Django');
+        
+        setTimeout(() => {
+          this.currentView = 'login';
+          this.loginForm.username = this.registerForm.username;
+          this.registerForm = {
+            username: '',
+            email: '',
+            password: '',
+            password2: '',
+            role: 'paciente'
+          };
+        }, 2000);
+        
+      } catch (error) {
+        console.error('❌ Error en registro:', error);
+        this.error = error?.message ? `Error al registrarse: ${error.message}` : 'Error al registrarse.';
+      } finally {
+        this.loading = false;
       }
     },
     
