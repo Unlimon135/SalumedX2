@@ -138,6 +138,22 @@
           required
         >
       </div>
+
+      <div class="form-group">
+        <label for="reg-role">Tipo de Usuario:</label>
+        <select 
+          id="reg-role" 
+          v-model="registerForm.role" 
+          required
+          style="padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 1em; background: var(--input-bg); color: var(--text); width: 100%; box-sizing: border-box; cursor: pointer;"
+        >
+          <option value="">-- Selecciona un rol --</option>
+          <option value="paciente">👤 Paciente</option>
+          <option value="medico">🩺 Médico</option>
+          <option value="farmacista">💊 Farmacista</option>
+          <option value="admin">👑 Administrador</option>
+        </select>
+      </div>
       
       <button type="submit" class="btn btn-primary" :disabled="loading">
         <span v-if="loading" class="loading"></span>

@@ -23,7 +23,8 @@ createApp({
         username: '',
         email: '',
         password: '',
-        password2: ''
+        password2: '',
+        role: 'paciente'
       },
       
       pdfForm: {
@@ -143,8 +144,9 @@ createApp({
     },
     
     loadAuthToken() {
-      const a = localStorage.getItem('AUTH_TOKEN');
-      const r = localStorage.getItem('REFRESH_TOKEN');
+      // Compatibilidad: leer nuevas y antiguas claves
+      const a = localStorage.getItem('access_token') || localStorage.getItem('AUTH_TOKEN');
+      const r = localStorage.getItem('refresh_token') || localStorage.getItem('REFRESH_TOKEN');
       if (a) this.authToken = a;
       if (r) this.refreshToken = r;
     },
@@ -152,78 +154,53 @@ createApp({
     saveAuthTokens(access, refresh) {
       this.authToken = access || null;
       this.refreshToken = refresh || null;
+      // Nuevas claves (recomendadas por integración del Auth Service)
+      if (access) localStorage.setItem('access_token', access); 
+      else localStorage.removeItem('access_token');
+      if (refresh) localStorage.setItem('refresh_token', refresh); 
+      else localStorage.removeItem('refresh_token');
+      // Mantener compatibilidad con claves antiguas
       if (access) localStorage.setItem('AUTH_TOKEN', access); 
       else localStorage.removeItem('AUTH_TOKEN');
       if (refresh) localStorage.setItem('REFRESH_TOKEN', refresh); 
       else localStorage.removeItem('REFRESH_TOKEN');
+    },
+
+    authBase() {
+      // Base del Auth Service derivada del endpoint GraphQL
+      return this.GRAPHQL_URL.replace('/graphql', '') + '/auth';
+    },
+
+    async refreshAuthToken() {
+      if (!this.refreshToken) throw new Error('No hay refresh token');
+      const url = `${this.authBase()}/refresh`;
+      const res = await axios.post(url, { refresh_token: this.refreshToken }, {
+        headers: { 'Content-Type': 'application/json' },
+        validateStatus: () => true
+      });
+      if (res.status >= 400 || !res.data?.success) {
+        throw new Error(res.data?.error || `Refresh falló (${res.status})`);
+      }
+      this.saveAuthTokens(res.data.access_token, res.data.refresh_token);
+      return res.data.access_token;
     },
     
     async pingApi() {
       this.clearMessages();
       this.loading = true;
       try {
-        let res = await axios.get(`${this.API_URL}/`, {
-          withCredentials: true,
+        const res = await axios.get(`${this.API_URL}/`, {
           validateStatus: () => true,
           timeout: 10000
         });
-        
-        if (res.status === 404 || res.status >= 500) {
-          res = await axios.get(`${this.API_URL}/signin/`, {
-            withCredentials: true,
-            validateStatus: () => true,
-            timeout: 10000
-          });
-        }
-        
-        if (res.status === 403 || res.status === 401) {
-          this.success = `✅ API conectada (${res.status}). Requiere autenticación con cookies de sesión.`;
-        } else if (res.status === 405) {
-          this.success = `✅ API conectada (${res.status} Method Not Allowed). El servidor está funcionando.`;
-        } else if (res.status < 400) {
-          this.success = `✅ API responde correctamente: ${res.status} ${res.statusText}`;
+        if (res.status === 200) {
+          this.success = '✅ API disponible (200)';
         } else {
-          this.success = `⚠️ API responde con: ${res.status} ${res.statusText}`;
-        }
-      } catch (err) {
-        if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-          this.error = `⏱️ Timeout: La API no respondió en 10 segundos. Puede estar despertando (Render). Espera 30s e intenta de nuevo.`;
-        } else {
-          this.error = `❌ No se pudo conectar a ${this.API_URL}. ${this.formatAxiosError(err)}`;
-        }
-      } finally {
-        this.loading = false;
-      }
-    },
-    
-    formatAxiosError(error) {
-      try {
-        const status = error.response?.status;
-        const statusText = error.response?.statusText;
-        const code = error.code;
-        const msg = error.message;
-        const url = error.config?.url;
-        return `Detalle: status=${status ?? 'N/A'} ${statusText ?? ''} code=${code ?? 'N/A'} url=${url ?? ''} msg=${msg ?? ''}`;
-      } catch (_) {
-        return String(error);
-      }
-    },
-    
-    async checkAuth() {
-      if (!this.authToken) return;
-      try {
-        const res = await axios.get(`${this.API_URL}/tasks/`, {
-          headers: { 'Authorization': `Bearer ${this.authToken}` },
-          validateStatus: () => true
-        });
-        if (res.status < 400) {
-          this.currentView = 'panel';
-        } else if ([401,403].includes(res.status)) {
-          console.warn(`⚠️ Token inválido (${res.status}). Limpiando sesión.`);
-          this.saveAuthTokens(null, null);
+          this.error = `⚠️ API respondió con estado ${res.status}`;
         }
       } catch (e) {
         console.log('Error verificando autenticación:', this.formatAxiosError(e));
+        this.error = 'Error de conexión: ' + this.formatAxiosError(e);
       }
     },
     
@@ -439,143 +416,27 @@ createApp({
         }
 
         this.currentView = 'panel';
+
+        // Intento adicional contra el servicio de autenticación; si falla no bloquea el login principal
+        try {
+          const url = `${this.authBase()}/login`;
+          const payload = {
+            username: this.loginForm.username.trim(),
+            password: this.loginForm.password
+          };
+          await axios.post(url, payload, {
+            headers: { 'Content-Type': 'application/json' },
+            validateStatus: () => true
+          });
+        } catch (error) {
+          console.warn('Login secundario falló:', error);
+        }
+
         this.loginForm.password = '';
-        
+
       } catch (error) {
-        console.error('❌ Error en login:', error);
-        this.error = error.message || 'Error al iniciar sesión. Verifica tus credenciales y que la API esté disponible.';
-      } finally {
-        this.loading = false;
-      }
-    },
-    
-    async handleRegister() {
-      this.clearMessages();
-      
-      if (!this.registerForm.username || this.registerForm.username.trim() === '') {
-        this.error = 'El nombre de usuario es requerido';
-        return;
-      }
-      
-      if (!this.registerForm.email || this.registerForm.email.trim() === '') {
-        this.error = 'El email es requerido';
-        return;
-      }
-      
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(this.registerForm.email)) {
-        this.error = 'El email no tiene un formato válido';
-        return;
-      }
-      
-      if (!this.registerForm.password || this.registerForm.password.trim() === '') {
-        this.error = 'La contraseña es requerida';
-        return;
-      }
-      
-      if (!this.registerForm.password2 || this.registerForm.password2.trim() === '') {
-        this.error = 'Debes confirmar la contraseña';
-        return;
-      }
-      
-      if (this.registerForm.password !== this.registerForm.password2) {
-        this.error = 'Las contraseñas no coinciden';
-        return;
-      }
-      
-      if (this.registerForm.password.length < 8) {
-        this.error = 'La contraseña debe tener al menos 8 caracteres';
-        return;
-      }
-      
-      this.loading = true;
-      
-      try {
-        const payload = {
-          username: String(this.registerForm.username).trim(),
-          email: String(this.registerForm.email).trim(),
-          password: String(this.registerForm.password),
-          password1: String(this.registerForm.password),
-          password2: String(this.registerForm.password2)
-        };
-        
-        console.log('📤 INTENTANDO REGISTRO:', `${this.API_URL}/signup/`);
-        
-        const response = await axios({
-          method: 'POST',
-          url: `${this.API_URL}/signup/`,
-          data: payload,
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          validateStatus: () => true,
-          timeout: 10000
-        });
-        
-        console.log('📥 Respuesta registro:', response.status, response.statusText);
-        
-        if (response.status >= 400) {
-          const data = response.data;
-          let errorMsg = 'Error al registrarse: ';
-          
-          if (typeof data === 'object') {
-            if (data.errors) {
-              const fieldErrors = Object.entries(data.errors)
-                .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
-                .join('; ');
-              errorMsg += fieldErrors;
-            } else if (data.detail) {
-              errorMsg += data.detail;
-            } else if (data.message) {
-              errorMsg += data.message;
-            } else {
-              errorMsg += JSON.stringify(data);
-            }
-          } else {
-            errorMsg += String(data) || 'No se pudo registrar';
-          }
-          
-          throw new Error(errorMsg);
-        }
-        
-        this.success = '¡Registro exitoso! Redirigiendo al login...';
-        
-        setTimeout(() => {
-          this.currentView = 'login';
-          this.loginForm.username = this.registerForm.username;
-          this.registerForm = { username: '', email: '', password: '', password2: '' };
-        }, 2000);
-        
-      } catch (error) {
-        console.error('Error en registro:', error);
-        
-        let errorMsg = 'Error al registrarse. ';
-        
-        if (error.response) {
-          const data = error.response.data;
-          if (typeof data === 'object') {
-            if (data.errors) {
-              const fieldErrors = Object.entries(data.errors)
-                .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
-                .join('; ');
-              errorMsg += fieldErrors;
-            } else if (data.detail) {
-              errorMsg += data.detail;
-            } else if (data.message) {
-              errorMsg += data.message;
-            } else {
-              errorMsg += JSON.stringify(data);
-            }
-          } else {
-            errorMsg += String(data);
-          }
-        } else if (error.request) {
-          errorMsg += 'No se recibió respuesta del servidor. Verifica que la API esté funcionando.';
-        } else {
-          errorMsg += error.message;
-        }
-        
-        this.error = errorMsg;
+        console.error('Error al iniciar sesión:', error);
+        this.error = error?.message ? `Error al iniciar sesión: ${error.message}` : 'Error al iniciar sesión.';
       } finally {
         this.loading = false;
       }
@@ -583,61 +444,66 @@ createApp({
     
     async handleLogout() {
       try {
-        await axios.post(`${this.API_URL}/logout/`, {}, { validateStatus: () => true });
+        const url = `${this.authBase()}/logout`;
+        const headers = { 'Content-Type': 'application/json' };
+        if (this.authToken) headers['Authorization'] = `Bearer ${this.authToken}`;
+        await axios.post(url, { refresh_token: this.refreshToken }, { headers, validateStatus: () => true });
+      } catch (error) {
+        console.error('Error en logout:', error);
+      } finally {
         this.currentView = 'login';
         this.username = '';
         this.userRole = null;
         this.isMedico = false;
         this.saveAuthTokens(null, null);
         this.success = 'Sesión cerrada correctamente';
-        
-        console.log('✅ Logout exitoso - Tokens eliminados');
-        
-      } catch (error) {
-        console.error('Error en logout:', error);
-        this.currentView = 'login';
-        this.username = '';
-        this.userRole = null;
-        this.isMedico = false;
-        this.saveAuthTokens(null, null);
       }
     },
     
     async graphql(query, variables = {}) {
       try {
-        const headers = {
-          'Content-Type': 'application/json'
-        };
-        if (this.authToken) {
-          headers['Authorization'] = `Bearer ${this.authToken}`;
-        }
-        
-        const response = await axios.post(
-          this.GRAPHQL_URL,
-          {
-            query,
-            variables
-          },
-          {
-            headers,
-            validateStatus: () => true
-          }
-        );
-        
-        if (response.data?.errors) {
-          const has403 = response.data.errors.some(e => 
-            e.message.includes('403') || 
-            e.message.includes('autorizado') || 
-            e.message.includes('autenticado')
+        const headers = { 'Content-Type': 'application/json' };
+        if (this.authToken) headers['Authorization'] = `Bearer ${this.authToken}`;
+
+        const doRequest = async () => {
+          return await axios.post(
+            this.GRAPHQL_URL,
+            { query, variables },
+            { headers, validateStatus: () => true }
           );
-          
-          if (has403) {
-            console.error('🔒 Error 403 detectado:', response.data.errors);
+        };
+
+        let response = await doRequest();
+
+        // Si el servidor responde 401, intentar refresh y reintentar
+        if (response.status === 401) {
+          try {
+            const newToken = await this.refreshAuthToken();
+            headers['Authorization'] = `Bearer ${newToken}`;
+            response = await doRequest();
+          } catch (e) {
+            throw e;
           }
         }
-        
+
+        // Si el HTTP es 200 pero hay error de autenticación en GraphQL
+        const needsRefresh = Array.isArray(response.data?.errors) && response.data.errors.some(e => {
+          const m = (e.message || '').toLowerCase();
+          return m.includes('no autenticado') || m.includes('token') || m.includes('expir');
+        });
+        if (needsRefresh) {
+          try {
+            const newToken = await this.refreshAuthToken();
+            headers['Authorization'] = `Bearer ${newToken}`;
+            response = await doRequest();
+          } catch (e) {
+            // Propagar para que la UI maneje sesión expirada
+            throw e;
+          }
+        }
+
         return response.data;
-        
+
       } catch (error) {
         console.error('Error en GraphQL:', this.formatAxiosError(error));
         throw error;

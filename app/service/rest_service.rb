@@ -58,20 +58,21 @@ class RestService
       "Accept"       => "application/json"
     }
     
-    # Preferencia: auth objeto, luego bearer, luego cookies+csrf
-    if auth
-      h.merge!(auth.auth_headers)
-    end
-    # If a raw Authorization header is provided, use it verbatim
+    # ✅ Prioridad 1: JWT (authorization_header o bearer_token)
     if authorization_header && !authorization_header.strip.empty?
       h["Authorization"] = authorization_header
     elsif bearer_token
       h["Authorization"] = "Bearer #{bearer_token}"
+    # Fallback: Django session auth (legacy, solo si no hay JWT)
+    elsif auth
+      h.merge!(auth.auth_headers)
     end
-    if cookies
+    
+    # Solo agregar cookies si no hay JWT (compatibilidad legacy)
+    if cookies && !h.key?("Authorization")
       h["Cookie"] = cookies
     end
-    if csrf_token
+    if csrf_token && !h.key?("Authorization")
       h["X-CSRFToken"] = csrf_token
     end
     
