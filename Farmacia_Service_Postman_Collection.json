@@ -1,0 +1,578 @@
+{
+	"info": {
+		"_postman_id": "farmacia-service-2026",
+		"name": "Farmacia Service API",
+		"description": "API REST para gestión de farmacia con inventario y ventas",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Autenticación",
+			"item": [
+				{
+					"name": "Registrar Farmacéutico",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"token_farmaceutico\", jsonData.tokens.access);",
+									"    pm.environment.set(\"id_farmaceutico\", jsonData.user.id);",
+									"    console.log(\"Token farmacéutico guardado\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"farmaceutico@farmacia.com\",\n  \"username\": \"farmaceutico1\",\n  \"password\": \"Password123!\",\n  \"password2\": \"Password123!\",\n  \"tipo_usuario\": \"farmaceutico\",\n  \"first_name\": \"Juan\",\n  \"last_name\": \"Pérez\",\n  \"telefono\": \"0991234567\",\n  \"direccion\": \"Av. Principal 123, Manta\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Registrar Cliente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"token_cliente\", jsonData.tokens.access);",
+									"    pm.environment.set(\"id_cliente\", jsonData.user.id);",
+									"    console.log(\"Token cliente guardado\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"cliente@gmail.com\",\n  \"username\": \"cliente1\",\n  \"password\": \"Password123!\",\n  \"password2\": \"Password123!\",\n  \"tipo_usuario\": \"cliente\",\n  \"first_name\": \"María\",\n  \"last_name\": \"García\",\n  \"telefono\": \"0987654321\",\n  \"direccion\": \"Calle 10 de Agosto, Portoviejo\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Farmacéutico",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"token_farmaceutico\", jsonData.tokens.access);",
+									"    pm.environment.set(\"id_farmaceutico\", jsonData.user.id);",
+									"    console.log(\"Login exitoso - Token guardado\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"farmaceutico@farmacia.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Cliente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"token_cliente\", jsonData.tokens.access);",
+									"    pm.environment.set(\"id_cliente\", jsonData.user.id);",
+									"    console.log(\"Login exitoso - Token guardado\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"cliente@gmail.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Mi Perfil",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me", ""]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "💊 Productos",
+			"item": [
+				{
+					"name": "Listar Productos (Farmacéutico)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/productos/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Productos (Cliente)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_cliente}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/productos/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Producto - Paracetamol",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"id_producto_1\", jsonData.id_producto);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre_generico\": \"Paracetamol\",\n  \"nombre_comercial\": \"Tylenol\",\n  \"principio_activo\": \"Paracetamol\",\n  \"categoria\": \"Analgésicos\",\n  \"presentacion\": \"Tabletas\",\n  \"concentracion\": \"500mg\",\n  \"stock\": 100,\n  \"precio\": 2.50\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/productos/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Producto - Ibuprofeno",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"id_producto_2\", jsonData.id_producto);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre_generico\": \"Ibuprofeno\",\n  \"nombre_comercial\": \"Advil\",\n  \"principio_activo\": \"Ibuprofeno\",\n  \"categoria\": \"Antiinflamatorios\",\n  \"presentacion\": \"Cápsulas\",\n  \"concentracion\": \"400mg\",\n  \"stock\": 150,\n  \"precio\": 3.75\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/productos/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Producto - Amoxicilina",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre_generico\": \"Amoxicilina\",\n  \"nombre_comercial\": \"Amoxil\",\n  \"principio_activo\": \"Amoxicilina\",\n  \"categoria\": \"Antibióticos\",\n  \"presentacion\": \"Suspensión\",\n  \"concentracion\": \"250mg/5ml\",\n  \"stock\": 50,\n  \"precio\": 8.50\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/productos/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Producto - Omeprazol",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre_generico\": \"Omeprazol\",\n  \"nombre_comercial\": \"Prilosec\",\n  \"principio_activo\": \"Omeprazol\",\n  \"categoria\": \"Antiácidos\",\n  \"presentacion\": \"Cápsulas\",\n  \"concentracion\": \"20mg\",\n  \"stock\": 80,\n  \"precio\": 5.25\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/productos/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Producto - Loratadina",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre_generico\": \"Loratadina\",\n  \"nombre_comercial\": \"Clarityne\",\n  \"principio_activo\": \"Loratadina\",\n  \"categoria\": \"Antihistamínicos\",\n  \"presentacion\": \"Tabletas\",\n  \"concentracion\": \"10mg\",\n  \"stock\": 120,\n  \"precio\": 4.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/productos/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Detalle Producto",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/productos/{{id_producto_1}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", "{{id_producto_1}}", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Producto",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"stock\": 80,\n  \"precio\": 2.75\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/productos/{{id_producto_1}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", "{{id_producto_1}}", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Producto",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/productos/5/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "productos", "5", ""]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🛒 Ventas",
+			"item": [
+				{
+					"name": "Listar Ventas (Farmacéutico)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/ventas/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "ventas", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Ventas (Cliente)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_cliente}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/ventas/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "ventas", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Venta - Simple",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"id_venta_1\", jsonData.id_venta);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cliente\": {{id_cliente}},\n  \"detalles\": [\n    {\n      \"producto\": 1,\n      \"cantidad\": 2\n    },\n    {\n      \"producto\": 2,\n      \"cantidad\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/ventas/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "ventas", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Venta - Múltiples Productos",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cliente\": {{id_cliente}},\n  \"detalles\": [\n    {\n      \"producto\": 1,\n      \"cantidad\": 5\n    },\n    {\n      \"producto\": 2,\n      \"cantidad\": 3\n    },\n    {\n      \"producto\": 3,\n      \"cantidad\": 2\n    },\n    {\n      \"producto\": 4,\n      \"cantidad\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/ventas/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "ventas", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Detalle Venta",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token_farmaceutico}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/ventas/{{id_venta_1}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "ventas", "{{id_venta_1}}", ""]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8002",
+			"type": "string"
+		}
+	]
+}
