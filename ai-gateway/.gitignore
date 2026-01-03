@@ -1,0 +1,17 @@
+# Archivos de configuración sensibles
+.env
+
+# Base de datos local
+*.db
+chat_history.db
+
+# Dependencias
+vendor/
+.bundle/
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+tmp/

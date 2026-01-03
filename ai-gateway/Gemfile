@@ -1,0 +1,33 @@
+# Gemfile - AI Gateway Service
+source 'https://rubygems.org'
+
+ruby '3.4.6'
+
+# Servidor web
+gem 'sinatra'
+gem 'sinatra-contrib'
+gem 'puma'
+gem 'dotenv'
+gem 'rack-cors'
+
+# HTTP Client
+gem 'httparty'
+gem 'faraday'
+
+# JSON
+gem 'json'
+
+# Procesamiento de archivos
+gem 'mini_magick'        # Imágenes
+gem 'rtesseract'         # OCR
+gem 'pdf-reader'         # PDFs
+
+# Base de datos (opcional para historial de chat)
+gem 'sqlite3'
+
+# Utilidades
+gem 'securerandom'
+
+group :development do
+  gem 'rerun'
+end
