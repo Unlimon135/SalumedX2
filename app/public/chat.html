@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaluMedX - AI Assistant</title>
+  
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  
+  <!-- Axios para peticiones HTTP -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="chat-styles.css">
+  
+  <!-- Auth JWT -->
+  <script src="auth-jwt.js"></script>
+</head>
+<body>
+
+<div id="app" :class="{ dark: isDark }">
+  <!-- HEADER -->
+  <header class="chat-header">
+    <div class="header-content">
+      <div class="header-left">
+        <a href="app.html" class="back-btn">
+          <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="header-title">
+          <h1><i class="fas fa-robot"></i> Asistente IA</h1>
+          <p class="subtitle">Powered by Gemini AI</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="user-info">
+          <i class="fas fa-user-circle"></i>
+          <span>{{ username }}</span>
+        </div>
+        <button @click="toggleDarkMode" class="btn-icon" title="Cambiar tema">
+          <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'"></i>
+        </button>
+        <button @click="logout" class="btn-icon" title="Cerrar sesión">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CHAT CONTAINER -->
+  <div class="chat-container">
+    <!-- SIDEBAR CON OPCIONES -->
+    <aside class="chat-sidebar" :class="{ collapsed: sidebarCollapsed }">
+      <button @click="sidebarCollapsed = !sidebarCollapsed" class="sidebar-toggle">
+        <i :class="sidebarCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left'"></i>
+      </button>
+      
+      <div v-if="!sidebarCollapsed" class="sidebar-content">
+        <div class="sidebar-section">
+          <h3><i class="fas fa-comments"></i> Acciones</h3>
+          <button @click="newChat" class="sidebar-btn">
+            <i class="fas fa-plus"></i> Nueva Conversación
+          </button>
+          <button @click="loadHistory" class="sidebar-btn">
+            <i class="fas fa-history"></i> Cargar Historial
+          </button>
+          <button @click="clearCurrentChat" class="sidebar-btn danger">
+            <i class="fas fa-trash"></i> Limpiar Chat
+          </button>
+        </div>
+        
+        <div class="sidebar-section">
+          <h3><i class="fas fa-tools"></i> MCP Tools</h3>
+          <div class="tools-list">
+            <div class="tool-item" title="Buscar productos/medicamentos">
+              <i class="fas fa-search"></i> buscar_producto
+            </div>
+            <div class="tool-item" title="Ver receta por ID">
+              <i class="fas fa-file-prescription"></i> ver_receta
+            </div>
+            <div class="tool-item" title="Crear nueva receta">
+              <i class="fas fa-plus-circle"></i> crear_receta
+            </div>
+            <div class="tool-item" title="Actualizar inventario">
+              <i class="fas fa-box"></i> actualizar_stock
+            </div>
+            <div class="tool-item" title="Reporte de ventas">
+              <i class="fas fa-chart-bar"></i> resumen_ventas
+            </div>
+          </div>
+        </div>
+        
+        <div class="sidebar-section">
+          <h3><i class="fas fa-file-upload"></i> Multimodal</h3>
+          <label class="upload-btn">
+            <i class="fas fa-image"></i> Subir Imagen (OCR)
+            <input type="file" @change="uploadImage" accept="image/*" hidden>
+          </label>
+          <label class="upload-btn">
+            <i class="fas fa-file-pdf"></i> Subir PDF
+            <input type="file" @change="uploadPDF" accept=".pdf" hidden>
+          </label>
+        </div>
+        
+        <div class="sidebar-section stats">
+          <h3><i class="fas fa-chart-pie"></i> Estadísticas</h3>
+          <div v-if="stats" class="stats-content">
+            <p><i class="fas fa-comments"></i> Mensajes: {{ stats.total_messages }}</p>
+            <p><i class="fas fa-users"></i> Usuarios: {{ stats.unique_users }}</p>
+          </div>
+          <button @click="loadStats" class="sidebar-btn secondary">
+            <i class="fas fa-sync"></i> Actualizar
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA DE MENSAJES -->
+    <main class="chat-main">
+      <!-- Loading overlay -->
+      <div v-if="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>{{ loadingMessage }}</p>
+      </div>
+      
+      <!-- Área de mensajes -->
+      <div class="messages-container" ref="messagesContainer">
+        <!-- Mensaje de bienvenida -->
+        <div v-if="messages.length === 0" class="welcome-message">
+          <i class="fas fa-robot"></i>
+          <h2>¡Hola, {{ username }}!</h2>
+          <p>Soy tu asistente de inteligencia artificial para SaluMedX.</p>
+          <p>Puedo ayudarte con:</p>
+          <ul>
+            <li>🔍 Buscar productos y medicamentos</li>
+            <li>📋 Consultar y crear recetas</li>
+            <li>📦 Gestionar inventario</li>
+            <li>📊 Generar reportes de ventas</li>
+            <li>🖼️ Analizar imágenes (OCR)</li>
+            <li>📄 Procesar documentos PDF</li>
+          </ul>
+          <p class="tip">💡 Prueba preguntando: "Busca paracetamol" o "Muéstrame las ventas del mes"</p>
+        </div>
+        
+        <!-- Mensajes -->
+        <div v-for="(msg, index) in messages" :key="index" 
+             :class="['message', msg.role]">
+          <div class="message-avatar">
+            <i :class="msg.role === 'user' ? 'fas fa-user' : 'fas fa-robot'"></i>
+          </div>
+          <div class="message-content">
+            <div class="message-header">
+              <span class="message-author">{{ msg.role === 'user' ? username : 'AI Assistant' }}</span>
+              <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
+            </div>
+            <div class="message-body" v-html="formatMessage(msg.content)"></div>
+            
+            <!-- Tools usadas -->
+            <div v-if="msg.tools_used && msg.tools_used.length > 0" class="tools-used">
+              <i class="fas fa-tools"></i> 
+              <span v-for="tool in msg.tools_used" :key="tool" class="tool-badge">
+                {{ tool }}
+              </span>
+            </div>
+            
+            <!-- Datos adjuntos -->
+            <div v-if="msg.data" class="message-data">
+              <button @click="toggleData(index)" class="data-toggle">
+                <i :class="msg.showData ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                {{ msg.showData ? 'Ocultar' : 'Ver' }} datos
+              </button>
+              <pre v-if="msg.showData" class="data-content">{{ JSON.stringify(msg.data, null, 2) }}</pre>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Indicador de escritura -->
+        <div v-if="isTyping" class="message assistant typing-indicator">
+          <div class="message-avatar">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div class="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Input de mensaje -->
+      <div class="message-input-container">
+        <div v-if="error" class="error-banner">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ error }}
+          <button @click="error = null" class="close-btn">×</button>
+        </div>
+        
+        <form @submit.prevent="sendMessage" class="message-form">
+          <textarea 
+            v-model="messageInput"
+            @keydown.enter.exact.prevent="sendMessage"
+            placeholder="Escribe tu mensaje... (Shift+Enter para nueva línea)"
+            class="message-input"
+            rows="1"
+            :disabled="loading"
+          ></textarea>
+          <button type="submit" class="send-btn" :disabled="!messageInput.trim() || loading">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </form>
+        
+        <div class="input-hints">
+          <span><i class="fas fa-lightbulb"></i> Ejemplos:</span>
+          <button @click="messageInput = 'Busca paracetamol'" class="hint-btn">Buscar producto</button>
+          <button @click="messageInput = 'Muéstrame el resumen de ventas'" class="hint-btn">Ver ventas</button>
+          <button @click="messageInput = '¿Qué medicamentos hay para el dolor?'" class="hint-btn">Consulta</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="chat.js"></script>
+
+</body>
+</html>
