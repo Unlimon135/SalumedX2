@@ -46,6 +46,17 @@ class AIGateway < Sinatra::Base
   get '/chat/history' do
     ChatController.get_history(request, params)
   end
+  
+  # Limpiar historial
+  delete '/chat/history' do
+    ChatController.clear_history(request, params)
+  end
+  
+  # Estadísticas de la DB
+  get '/chat/stats' do
+    content_type :json
+    DB.instance.stats.to_json
+  end
 
   # Error handlers
   error 400 do

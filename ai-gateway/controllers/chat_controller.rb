@@ -13,11 +13,18 @@ class ChatController
         
         halt 400, { error: 'Mensaje requerido' }.to_json unless message
         
+        # Guardar mensaje del usuario
+        user_id = extract_user_id(token)
+        DB.instance.save_message(user_id, message, 'user') if user_id
+        
         # Crear agente
         agent = Agent.new(token: token)
         
         # Procesar mensaje
         response = agent.process_message(message)
+        
+        # Guardar respuesta del asistente
+        DB.instance.save_message(user_id, response[:response], 'assistant') if user_id
         
         status 200
         response.to_json
@@ -87,14 +94,50 @@ class ChatController
       
       begin
         token = extract_token(request)
+        user_id = extract_user_id(token)
         
-        # TODO: Implementar base de datos para historial
-        history = []
+        halt 400, { error: 'User ID no disponible' }.to_json unless user_id
+        
+        # Obtener historial de la base de datos
+        limit = params['limit']&.to_i || 20
+        history = DB.instance.get_history(user_id, limit)
+        
+        # Formatear historial
+        formatted = history.map do |row|
+          {
+            id: row[0],
+            user_id: row[1],
+            message: row[2],
+            role: row[3],
+            created_at: row[4]
+          }
+        end
         
         status 200
-        { history: history }.to_json
+        { history: formatted.reverse }.to_json
         
       rescue StandardError => e
+        puts "❌ Error obteniendo historial: #{e.message}"
+        halt 500, { error: e.message }.to_json
+      end
+    end
+    
+    def clear_history(request, params)
+      content_type :json
+      
+      begin
+        token = extract_token(request)
+        user_id = extract_user_id(token)
+        
+        halt 400, { error: 'User ID no disponible' }.to_json unless user_id
+        
+        DB.instance.clear_history(user_id)
+        
+        status 200
+        { message: 'Historial eliminado', user_id: user_id }.to_json
+        
+      rescue StandardError => e
+        puts "❌ Error eliminando historial: #{e.message}"
         halt 500, { error: e.message }.to_json
       end
     end
@@ -106,6 +149,25 @@ class ChatController
       return nil unless auth_header
       
       auth_header.gsub(/^Bearer /, '')
+    end
+    
+    def extract_user_id(token)
+      return 'anonymous' unless token
+      
+      begin
+        # Decodificar JWT para obtener user_id
+        require 'base64'
+        require 'json'
+        
+        payload = token.split('.')[1]
+        decoded = Base64.urlsafe_decode64(payload + '=' * (4 - payload.length % 4))
+        data = JSON.parse(decoded)
+        
+        data['sub'] || data['user_id'] || data['id'] || 'anonymous'
+      rescue StandardError => e
+        puts "⚠️ No se pudo extraer user_id: #{e.message}"
+        'anonymous'
+      end
     end
   end
 end

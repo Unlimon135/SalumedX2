@@ -16,6 +16,10 @@ require_relative '../utils/file_parser'
 require_relative '../infra/http_client'
 require_relative '../infra/db'
 
+# Inicializar base de datos
+DB.instance
+puts "✅ Base de datos SQLite inicializada"
+
 # LLM Adapters
 require_relative '../llm/llm_adapter'
 require_relative '../llm/gemini_adapter'
