@@ -554,6 +554,22 @@ createApp({
         this.success = 'Sesión cerrada correctamente';
       }
     },
+
+    openChat() {
+      // Verificar que haya sesión activa
+      if (!this.authToken || !this.username) {
+        this.error = 'Debes iniciar sesión para acceder al chat';
+        return;
+      }
+
+      // Guardar datos de sesión en localStorage antes de navegar
+      localStorage.setItem('authToken', this.authToken);
+      localStorage.setItem('username', this.username);
+      localStorage.setItem('API_URL', this.API_URL);
+
+      // Navegar al chat
+      window.location.href = 'chat.html';
+    },
     
     async handleRegister() {
       this.clearMessages();
