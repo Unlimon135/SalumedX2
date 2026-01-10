@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obtener Token JWT</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .token-box {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            background: #28a745;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        .error {
+            background: #dc3545;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        .info {
+            background: #17a2b8;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .command {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 15px 0;
+            position: relative;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #555;
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+        .decoded {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Obtener Token JWT</h1>
+        <p>Esta página te ayuda a obtener el token JWT de tu sesión actual.</p>
+
+        <div class="info">
+            <strong>📝 Instrucciones:</strong><br>
+            1. Asegúrate de estar autenticado en <a href="chat.html" target="_blank">chat.html</a><br>
+            2. Haz clic en "Obtener Token" para extraerlo del localStorage<br>
+            3. Copia el comando y ejecútalo en el terminal
+        </div>
+
+        <button onclick="obtenerToken()">🔑 Obtener Token</button>
+        <button onclick="decodificarToken()">🔓 Decodificar en el Navegador</button>
+        <button onclick="limpiarToken()">🗑️ Limpiar</button>
+
+        <div id="success" class="success"></div>
+        <div id="error" class="error"></div>
+
+        <div id="tokenContainer" style="display:none;">
+            <h3>Token Encontrado:</h3>
+            <div class="token-box" id="tokenDisplay"></div>
+
+            <h3>Comando para Verificar:</h3>
+            <div class="command">
+                <button class="copy-btn" onclick="copiarComando()">📋 Copiar</button>
+                <div id="comando"></div>
+            </div>
+
+            <div class="info">
+                <strong>💡 Para Windows PowerShell:</strong><br>
+                Copia el comando de arriba y pégalo en tu terminal (PowerShell o CMD)
+            </div>
+        </div>
+
+        <div id="decodedContainer" style="display:none;">
+            <h3>Token Decodificado:</h3>
+            <div class="decoded">
+                <h4>📋 Payload (Datos del Usuario):</h4>
+                <pre id="payload"></pre>
+
+                <h4>🔍 Campos de Usuario Detectados:</h4>
+                <pre id="camposUsuario"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function obtenerToken() {
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                mostrarError('❌ No se encontró token. Asegúrate de estar autenticado primero.');
+                document.getElementById('tokenContainer').style.display = 'none';
+                document.getElementById('decodedContainer').style.display = 'none';
+                return;
+            }
+
+            mostrarExito('✅ Token encontrado');
+            document.getElementById('tokenDisplay').textContent = token;
+            
+            // Generar comando
+            const comando = `ruby check_jwt.rb "${token}"`;
+            document.getElementById('comando').textContent = comando;
+            
+            document.getElementById('tokenContainer').style.display = 'block';
+            document.getElementById('decodedContainer').style.display = 'none';
+        }
+
+        function decodificarToken() {
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                mostrarError('❌ No se encontró token');
+                return;
+            }
+
+            try {
+                // Decodificar JWT (sin verificar firma)
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Token inválido');
+                }
+
+                const payload = JSON.parse(atob(parts[1]));
+                
+                // Mostrar payload completo
+                document.getElementById('payload').textContent = JSON.stringify(payload, null, 2);
+
+                // Analizar campos de usuario
+                const camposUsuario = {
+                    'User ID (sub)': payload.sub || '❌ No encontrado',
+                    'username': payload.username || '❌ No encontrado',
+                    'name': payload.name || '❌ No encontrado',
+                    'user_name': payload.user_name || '❌ No encontrado',
+                    'nombre': payload.nombre || '❌ No encontrado',
+                    'full_name': payload.full_name || '❌ No encontrado',
+                    'displayName': payload.displayName || '❌ No encontrado',
+                    'email': payload.email || '❌ No encontrado',
+                    'role': payload.role || '❌ No encontrado',
+                    'exp (Expira)': payload.exp ? new Date(payload.exp * 1000).toLocaleString() : '❌ No encontrado'
+                };
+
+                let camposTexto = '';
+                for (const [campo, valor] of Object.entries(camposUsuario)) {
+                    camposTexto += `${campo}: ${valor}\n`;
+                }
+
+                document.getElementById('camposUsuario').textContent = camposTexto;
+                document.getElementById('decodedContainer').style.display = 'block';
+                document.getElementById('tokenContainer').style.display = 'none';
+                
+                mostrarExito('✅ Token decodificado exitosamente');
+
+                // Detectar cuál campo tiene el username
+                const possibleUsernames = ['username', 'name', 'user_name', 'nombre', 'full_name', 'displayName'];
+                const foundUsername = possibleUsernames.find(field => payload[field]);
+                
+                if (foundUsername) {
+                    console.log(`✅ Campo de username encontrado: "${foundUsername}" = "${payload[foundUsername]}"`);
+                    alert(`✅ El campo correcto del username es: "${foundUsername}"\n\nValor: "${payload[foundUsername]}"\n\nRevisa la consola para más detalles.`);
+                } else {
+                    console.warn('⚠️ No se encontró ningún campo de username en el token');
+                    alert('⚠️ No se encontró campo de username en el token. Revisa el Payload completo.');
+                }
+
+            } catch (error) {
+                mostrarError('❌ Error al decodificar: ' + error.message);
+            }
+        }
+
+        function limpiarToken() {
+            document.getElementById('tokenContainer').style.display = 'none';
+            document.getElementById('decodedContainer').style.display = 'none';
+            ocultarMensajes();
+        }
+
+        function copiarComando() {
+            const comando = document.getElementById('comando').textContent;
+            navigator.clipboard.writeText(comando).then(() => {
+                mostrarExito('✅ Comando copiado al portapapeles');
+            });
+        }
+
+        function mostrarExito(mensaje) {
+            const elem = document.getElementById('success');
+            elem.textContent = mensaje;
+            elem.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function mostrarError(mensaje) {
+            const elem = document.getElementById('error');
+            elem.textContent = mensaje;
+            elem.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
+        }
+
+        function ocultarMensajes() {
+            document.getElementById('success').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        // Auto-verificar al cargar
+        window.onload = () => {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                console.log('✅ Token encontrado en localStorage');
+            } else {
+                console.warn('⚠️ No hay token en localStorage');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -20,6 +20,11 @@ createApp({
       messageInput: '',
       stats: null,
       
+      // Geolocation
+      userLocation: null,
+      locationError: null,
+      locationRequested: false,
+      
       // Config
       AI_GATEWAY_URL: 'http://localhost:5000',
       API_URL: localStorage.getItem('API_URL') || 'https://salumedx-rest.onrender.com'
@@ -30,6 +35,7 @@ createApp({
     this.checkAuth();
     this.loadStats();
     this.adjustTextareaHeight();
+    this.requestLocation();
   },
   
   methods: {
@@ -61,10 +67,68 @@ createApp({
       localStorage.setItem('darkMode', this.isDark);
     },
     
+    // ========== GEOLOCATION ==========
+    requestLocation() {
+      if (!navigator.geolocation) {
+        this.locationError = 'Tu navegador no soporta geolocalización';
+        console.warn('Geolocalización no disponible');
+        return;
+      }
+      
+      this.locationRequested = true;
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.userLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          this.locationError = null;
+          console.log('📍 Ubicación obtenida:', this.userLocation);
+          
+          // Mostrar notificación al usuario
+          this.addMessage('system', '📍 Ubicación activada. Ahora puedo mostrarte farmacias cercanas.');
+        },
+        (error) => {
+          this.locationError = this.getLocationErrorMessage(error);
+          console.error('Error obteniendo ubicación:', error);
+          
+          // Mostrar mensaje al usuario
+          this.addMessage('system', '⚠️ No pude obtener tu ubicación. Las búsquedas de farmacias cercanas no estarán disponibles.');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutos
+        }
+      );
+    },
+    
+    getLocationErrorMessage(error) {
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          return 'Permiso de ubicación denegado. Por favor, habilita el acceso a la ubicación en tu navegador.';
+        case error.POSITION_UNAVAILABLE:
+          return 'Ubicación no disponible.';
+        case error.TIMEOUT:
+          return 'Tiempo de espera agotado al obtener ubicación.';
+        default:
+          return 'Error desconocido al obtener ubicación.';
+      }
+    },
+    
+    retryLocation() {
+      this.locationError = null;
+      this.requestLocation();
+    },
+    
     // ========== CHAT ==========
     async sendMessage() {
       const message = this.messageInput.trim();
       if (!message || this.loading) return;
+      
+      console.log('📤 Enviando mensaje:', message);
       
       // Agregar mensaje del usuario
       this.addMessage('user', message);
@@ -76,9 +140,18 @@ createApp({
       this.loadingMessage = 'Pensando...';
       
       try {
+        // Preparar payload con ubicación si está disponible
+        const payload = { message };
+        if (this.userLocation) {
+          payload.user_lat = this.userLocation.latitude;
+          payload.user_lng = this.userLocation.longitude;
+        }
+        
+        console.log('📡 Enviando request a:', `${this.AI_GATEWAY_URL}/chat/message`);
+        
         const response = await axios.post(
           `${this.AI_GATEWAY_URL}/chat/message`,
-          { message },
+          payload,
           {
             headers: {
               'Authorization': `Bearer ${this.authToken}`,
@@ -87,21 +160,39 @@ createApp({
           }
         );
         
+        console.log('✅ Respuesta recibida:', response.data);
+        
+        // Validar que existe la respuesta
+        if (!response.data || !response.data.response) {
+          console.error('⚠️ Respuesta vacía o inválida:', response.data);
+          throw new Error('Respuesta vacía del servidor');
+        }
+        
         // Agregar respuesta del asistente
         const assistantMessage = {
           role: 'assistant',
           content: response.data.response,
           tools_used: response.data.tools_used || [],
           data: response.data.data || null,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          showData: false
         };
         
+        console.log('💬 Agregando mensaje del asistente:', assistantMessage);
         this.messages.push(assistantMessage);
-        this.scrollToBottom();
+        
+        console.log('📋 Total mensajes:', this.messages.length);
+        
+        this.$nextTick(() => {
+          this.scrollToBottom();
+        });
         
       } catch (err) {
-        console.error('Error enviando mensaje:', err);
-        this.error = err.response?.data?.error || 'Error al comunicarse con el asistente';
+        console.error('❌ Error completo:', err);
+        console.error('Response data:', err.response?.data);
+        console.error('Response status:', err.response?.status);
+        
+        this.error = err.response?.data?.error || err.message || 'Error al comunicarse con el asistente';
         
         // Agregar mensaje de error
         this.addMessage('assistant', '❌ Lo siento, ocurrió un error al procesar tu mensaje. Por favor intenta de nuevo.');
@@ -109,6 +200,7 @@ createApp({
       } finally {
         this.isTyping = false;
         this.loading = false;
+        console.log('✅ Proceso completado');
       }
     },
     
@@ -299,6 +391,22 @@ createApp({
         showData: false
       });
       this.scrollToBottom();
+    },
+    
+    getMessageIcon(role) {
+      switch(role) {
+        case 'user': return 'fas fa-user';
+        case 'system': return 'fas fa-info-circle';
+        default: return 'fas fa-robot';
+      }
+    },
+    
+    getMessageAuthor(role) {
+      switch(role) {
+        case 'user': return this.username;
+        case 'system': return 'Sistema';
+        default: return 'AI Assistant';
+      }
     },
     
     toggleData(index) {

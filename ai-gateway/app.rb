@@ -29,27 +29,27 @@ class AIGateway < Sinatra::Base
 
   # Chat endpoint
   post '/chat/message' do
-    ChatController.handle_message(request, params)
+    ChatController.handle_message(self, request, params)
   end
 
   # Procesar imagen
   post '/chat/image' do
-    ChatController.handle_image(request, params)
+    ChatController.handle_image(self, request, params)
   end
 
   # Procesar PDF
   post '/chat/pdf' do
-    ChatController.handle_pdf(request, params)
+    ChatController.handle_pdf(self, request, params)
   end
 
   # Historial
   get '/chat/history' do
-    ChatController.get_history(request, params)
+    ChatController.get_history(self, request, params)
   end
   
   # Limpiar historial
   delete '/chat/history' do
-    ChatController.clear_history(request, params)
+    ChatController.clear_history(self, request, params)
   end
   
   # Estadísticas de la DB

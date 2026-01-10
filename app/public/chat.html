@@ -37,6 +37,14 @@
         </div>
       </div>
       <div class="header-right">
+        <div v-if="userLocation" class="location-indicator" title="Ubicación activada">
+          <i class="fas fa-map-marker-alt"></i>
+          <span class="location-text">GPS activo</span>
+        </div>
+        <div v-else-if="locationError" class="location-indicator error" @click="retryLocation" title="Click para reintentar">
+          <i class="fas fa-map-marker-alt-slash"></i>
+          <span class="location-text">GPS inactivo</span>
+        </div>
         <div class="user-info">
           <i class="fas fa-user-circle"></i>
           <span>{{ username }}</span>
@@ -90,6 +98,9 @@
             </div>
             <div class="tool-item" title="Reporte de ventas">
               <i class="fas fa-chart-bar"></i> resumen_ventas
+            </div>
+            <div class="tool-item" title="Farmacias cercanas (requiere GPS)">
+              <i class="fas fa-map-marker-alt"></i> buscar_farmacia_cercana
             </div>
           </div>
         </div>
@@ -150,11 +161,11 @@
         <div v-for="(msg, index) in messages" :key="index" 
              :class="['message', msg.role]">
           <div class="message-avatar">
-            <i :class="msg.role === 'user' ? 'fas fa-user' : 'fas fa-robot'"></i>
+            <i :class="getMessageIcon(msg.role)"></i>
           </div>
           <div class="message-content">
             <div class="message-header">
-              <span class="message-author">{{ msg.role === 'user' ? username : 'AI Assistant' }}</span>
+              <span class="message-author">{{ getMessageAuthor(msg.role) }}</span>
               <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
             </div>
             <div class="message-body" v-html="formatMessage(msg.content)"></div>
@@ -224,7 +235,7 @@
   </div>
 </div>
 
-<script src="chat.js"></script>
+<script src="chat.js?v=2"></script>
 
 </body>
 </html>

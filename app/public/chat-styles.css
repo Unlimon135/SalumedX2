@@ -76,6 +76,43 @@
   font-weight: 500;
 }
 
+.location-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--success);
+  border-radius: 20px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.location-indicator.error {
+  background: var(--danger);
+  cursor: pointer;
+}
+
+.location-indicator:hover {
+  transform: scale(1.05);
+}
+
+.location-indicator i {
+  font-size: 1rem;
+}
+
+.location-text {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .location-text {
+    display: none;
+  }
+}
+
 .btn-icon {
   display: flex;
   align-items: center;
@@ -421,6 +458,11 @@
   color: white;
 }
 
+.message.system .message-avatar {
+  background: var(--info);
+  color: white;
+}
+
 .message-content {
   max-width: 70%;
   background: var(--card);
@@ -432,6 +474,13 @@
 .message.user .message-content {
   background: var(--primary);
   color: white;
+}
+
+.message.system .message-content {
+  background: var(--info);
+  color: white;
+  font-size: 0.9rem;
+  opacity: 0.95;
 }
 
 .message-header {

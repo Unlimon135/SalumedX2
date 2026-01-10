@@ -9,7 +9,14 @@ class MCPRouter
     raise "Herramienta '#{tool_name}' no encontrada" unless tool
     
     puts "🔧 Ejecutando herramienta: #{tool_name}"
-    tool.call(params, @token)
+    
+    # Algunas herramientas aceptan un tercer parámetro context
+    begin
+      tool.call(params, @token)
+    rescue ArgumentError
+      # Si la herramienta acepta 3 argumentos, pasar params vacío como context
+      tool.call(params, @token, {})
+    end
   end
 
   def list_tools
@@ -23,6 +30,7 @@ class MCPRouter
       # Queries
       buscar_producto: ->(params, token) { MCP::BuscarProducto.execute(params, token) },
       ver_receta: ->(params, token) { MCP::VerReceta.execute(params, token) },
+      buscar_farmacia_cercana: ->(params, token, context = {}) { MCP::BuscarFarmaciaCercana.execute(params, token, context) },
       
       # Actions
       crear_receta: ->(params, token) { MCP::CrearReceta.execute(params, token) },

@@ -29,10 +29,12 @@ require_relative '../llm/llm_factory'
 require_relative '../services/product_service'
 require_relative '../services/receta_service'
 require_relative '../services/report_service'
+require_relative '../services/farmacia_service'
 
 # MCP Tools
 require_relative '../mcp/queries/buscar_producto'
 require_relative '../mcp/queries/ver_receta'
+require_relative '../mcp/queries/buscar_farmacia_cercana'
 require_relative '../mcp/actions/crear_receta'
 require_relative '../mcp/actions/actualizar_stock'
 require_relative '../mcp/reports/resumen_ventas'
