@@ -9,4 +9,7 @@ urlpatterns = [
     # Ventas
     path('ventas/', views.ventas_list_create, name='ventas-list-create'),
     path('ventas/<int:pk>/', views.venta_detail, name='venta-detail'),
+
+    # PILAR 2 - Stripe Payment Confirmation
+    path('pagos/confirmar/', views.confirmar_pago, name='confirmar-pago'),
 ]

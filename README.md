@@ -298,6 +298,28 @@ Este microservicio se integrará con SalumedX REST API para:
 2. Sincronizar inventario (sin stock)
 3. Recibir órdenes de compra desde SalumedX
 
+## 💳 Pilar 2 - Stripe Payment Service
+
+Servicio Express + TypeScript separado para pagos con Stripe (modo test) usando patrón Adapter y webhook hacia Django.
+
+### Variables de entorno necesarias
+- STRIPE_SECRET_KEY=sk_test_xxx
+- STRIPE_WEBHOOK_SECRET=whsec_xxx
+- INTERNAL_SECRET=token-interno-compartido (mismo valor en Django y payment_service)
+- DJANGO_CONFIRM_URL=http://localhost:8000/api/pagos/confirmar/ (opcional si se usa otro host)
+- PORT=4000 (opcional para payment_service)
+
+### Puesta en marcha del payment_service
+1. `cd payment_service`
+2. `npm install`
+3. Copiar `.env.example` a `.env` y completar valores de Stripe e INTERNAL_SECRET.
+4. `npm run dev` para correr en modo desarrollo (default puerto 4000).
+5. Configurar en Stripe CLI o Dashboard el webhook apuntando a `http://localhost:4000/webhooks/stripe`.
+
+### Flujo
+- `POST /pay` crea un PaymentIntent (StripeAdapter) y devuelve `clientSecret` + `paymentIntentId`.
+- Stripe envía `payment_intent.succeeded` al webhook -> se valida firma -> se notifica a Django en `/api/pagos/confirmar/` con header `X-INTERNAL-SECRET`.
+
 ## 🛠️ Stack Tecnológico
 
 - Django 5.2.7

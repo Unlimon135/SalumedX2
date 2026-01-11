@@ -1,8 +1,9 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 
 from farmacia.models import Producto, Venta
 from farmacia.serializers import (
@@ -142,3 +143,33 @@ def venta_detail(request, pk):
 
     serializer = VentaSerializer(venta)
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def confirmar_pago(request):
+    """PILAR 2 - Stripe Payment Confirmation: endpoint interno de confirmacion de pagos."""
+
+    provided_secret = request.headers.get('X-INTERNAL-SECRET')
+    expected_secret = getattr(settings, 'INTERNAL_SECRET', None)
+
+    if not expected_secret or provided_secret != expected_secret:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    payment_intent_id = request.data.get('paymentIntentId')
+    reference = request.data.get('reference')
+    amount = request.data.get('amount')
+
+    if not payment_intent_id:
+        return Response({'error': 'paymentIntentId is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # PILAR 2 - Stripe Payment Confirmation
+    return Response(
+        {
+            'message': 'PILAR 2 - Stripe Payment Confirmation: pago confirmado',
+            'payment_intent_id': payment_intent_id,
+            'reference': reference,
+            'amount': amount,
+        },
+        status=status.HTTP_200_OK,
+    )
