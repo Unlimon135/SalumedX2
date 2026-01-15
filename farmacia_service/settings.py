@@ -169,4 +169,4 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # PILAR 2 - Stripe Payment Confirmation
-INTERNAL_SECRET = os.getenv('INTERNAL_SECRET', 'change-me-in-production')
+INTERNAL_SECRET = os.getenv('INTERNAL_SECRET', 'mi-secreto-compartido-123')
