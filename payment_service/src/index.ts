@@ -8,6 +8,7 @@ import { PaymentAdapter } from './adapters/PaymentAdapter'; // PILAR 2 - Mock Ad
 import { WebhookNormalizer } from './services/WebhookNormalizer'; // PILAR 2 - Webhook Normalization
 import { PartnerManager } from './services/PartnerManager'; // PILAR 2 - Partner Registration
 import { HMACService } from './services/HMACService'; // PILAR 2 - HMAC Authentication
+import { WebhookDispatcher } from './services/WebhookDispatcher'; // PILAR 2 - Bidirectional Webhooks
 
 const app = express();
 
@@ -59,6 +60,11 @@ app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (r
 
     // PILAR 2 - Webhook Normalization: Procesar solo eventos de pago exitoso
     if (normalizedEvent.type === 'payment.succeeded') {
+      // PILAR 2 - Bidirectional Webhooks: Disparar evento a partners suscritos
+      WebhookDispatcher.dispatchEvent(normalizedEvent).catch((err) => {
+        console.error('[PILAR 2] Error dispatching webhooks to partners', err);
+      });
+
       // Notify Django backend for internal confirmation
       try {
         await axios.post(
@@ -113,6 +119,11 @@ app.post('/webhooks/mock', async (req: Request, res: Response) => {
 
     // PILAR 2 - Webhook Normalization: Procesar solo eventos de pago exitoso
     if (normalizedEvent.type === 'payment.succeeded') {
+      // PILAR 2 - Bidirectional Webhooks: Disparar evento a partners suscritos
+      WebhookDispatcher.dispatchEvent(normalizedEvent).catch((err) => {
+        console.error('[PILAR 2] Error dispatching webhooks to partners', err);
+      });
+
       try {
         await axios.post(
           config.djangoConfirmationUrl,
@@ -422,6 +433,37 @@ app.post('/hmac/verify', (req: Request, res: Response) => {
     console.error('[PILAR 2] Error verifying signature', error);
     return res.status(500).json({
       error: 'Failed to verify signature',
+    });
+  }
+});
+
+// PILAR 2 - Bidirectional Webhooks: Endpoint para testing y demostración
+
+/**
+ * PILAR 2 - Bidirectional Webhooks
+ * POST /webhooks/test/trigger - Disparar evento de prueba a partners
+ * Útil para testing sin depender de eventos reales
+ */
+app.post('/webhooks/test/trigger', async (req: Request, res: Response) => {
+  const { eventType } = req.body as { eventType?: string };
+
+  try {
+    const type = eventType || 'payment.succeeded';
+
+    console.log(`[PILAR 2] Test trigger for event: ${type}`);
+
+    // PILAR 2 - Bidirectional Webhooks: Disparar evento de prueba
+    await WebhookDispatcher.dispatchTestEvent(type);
+
+    return res.json({
+      message: 'Test event triggered',
+      eventType: type,
+      status: 'dispatching',
+    });
+  } catch (error) {
+    console.error('[PILAR 2] Error triggering test event', error);
+    return res.status(500).json({
+      error: 'Failed to trigger test event',
     });
   }
 });
