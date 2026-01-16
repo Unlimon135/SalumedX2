@@ -7,6 +7,7 @@ import { MockAdapter } from './adapters/MockAdapter'; // PILAR 2 - Mock Adapter
 import { PaymentAdapter } from './adapters/PaymentAdapter'; // PILAR 2 - Mock Adapter
 import { WebhookNormalizer } from './services/WebhookNormalizer'; // PILAR 2 - Webhook Normalization
 import { PartnerManager } from './services/PartnerManager'; // PILAR 2 - Partner Registration
+import { HMACService } from './services/HMACService'; // PILAR 2 - HMAC Authentication
 
 const app = express();
 
@@ -254,6 +255,174 @@ app.delete('/partners/:id', (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error deleting partner', error);
     return res.status(500).json({ error: 'Failed to delete partner' });
+  }
+});
+
+// PILAR 2 - HMAC Authentication: Endpoint para recibir webhooks de partners
+
+/**
+ * PILAR 2 - HMAC Authentication
+ * POST /webhooks/partner - Recibir webhooks de otros grupos/partners
+ * Verifica la firma HMAC-SHA256 en el header X-Signature
+ */
+app.post('/webhooks/partner', (req: Request, res: Response) => {
+  try {
+    const { partnerId } = req.body as { partnerId?: string };
+
+    // PILAR 2 - HMAC Authentication: Validar que se proporcione partnerId
+    if (!partnerId) {
+      return res.status(400).json({
+        error: 'partnerId is required in request body',
+      });
+    }
+
+    // PILAR 2 - HMAC Authentication: Obtener partner registrado
+    const partner = PartnerManager.getPartnerById(partnerId);
+
+    if (!partner) {
+      console.warn(`[PILAR 2] Webhook received from unknown partner: ${partnerId}`);
+      return res.status(404).json({
+        error: 'Partner not found',
+      });
+    }
+
+    if (!partner.isActive) {
+      console.warn(`[PILAR 2] Webhook received from inactive partner: ${partnerId}`);
+      return res.status(403).json({
+        error: 'Partner is not active',
+      });
+    }
+
+    // PILAR 2 - HMAC Authentication: Verificar firma HMAC
+    const verificationResult = HMACService.verifyRequestSignature(
+      req.headers,
+      req.body,
+      partner.hmacSecret
+    );
+
+    if (!verificationResult.valid) {
+      console.warn(
+        `[PILAR 2] Invalid HMAC signature from partner ${partnerId}: ${verificationResult.reason}`
+      );
+      return res.status(401).json({
+        error: 'Invalid HMAC signature',
+        reason: verificationResult.reason,
+      });
+    }
+
+    console.log(`[PILAR 2] Valid webhook received from partner ${partnerId} (${partner.name})`);
+
+    // PILAR 2 - HMAC Authentication: Validar estructura del evento
+    const { type, reference, amount } = req.body as {
+      type?: string;
+      reference?: string;
+      amount?: number;
+    };
+
+    if (!type) {
+      return res.status(400).json({
+        error: 'Event type is required',
+      });
+    }
+
+    // PILAR 2 - HMAC Authentication: Verificar que el partner esté suscrito a este evento
+    if (!partner.eventosSuscritos.includes(type)) {
+      console.warn(
+        `[PILAR 2] Partner ${partnerId} received unsubscribed event: ${type}`
+      );
+      return res.status(403).json({
+        error: `Partner is not subscribed to event type: ${type}`,
+      });
+    }
+
+    // PILAR 2 - HMAC Authentication: Log de evento procesado
+    console.log(`[PILAR 2] Processing event from partner: type=${type}, reference=${reference}, amount=${amount}`);
+
+    // PILAR 2 - HMAC Authentication: Aquí irían acciones de negocio
+    // Por ahora solo registramos el evento recibido
+
+    return res.json({
+      message: 'Webhook received and verified successfully',
+      partnerId: partnerId,
+      partnerName: partner.name,
+      eventType: type,
+      signatureValid: true,
+    });
+  } catch (error) {
+    console.error('[PILAR 2] Error processing partner webhook', error);
+    return res.status(500).json({
+      error: 'Failed to process webhook',
+    });
+  }
+});
+
+// PILAR 2 - HMAC Authentication: Endpoint de testing para generar firmas
+
+/**
+ * PILAR 2 - HMAC Authentication
+ * POST /hmac/sign - Generar una firma HMAC para testing/debugging
+ * (Solo para desarrollo, NO usar en producción)
+ */
+app.post('/hmac/sign', (req: Request, res: Response) => {
+  const { payload, secret } = req.body as { payload?: any; secret?: string };
+
+  if (!payload || !secret) {
+    return res.status(400).json({
+      error: 'payload and secret are required',
+    });
+  }
+
+  try {
+    // PILAR 2 - HMAC Authentication: Generar firma
+    const signature = HMACService.signPayload(payload, secret);
+
+    return res.json({
+      payload,
+      secret: '***', // NO devolver el secret completo
+      signature,
+      header: {
+        'X-Signature': signature,
+      },
+      info: 'Use this signature in X-Signature header when sending webhooks',
+    });
+  } catch (error) {
+    console.error('[PILAR 2] Error generating signature', error);
+    return res.status(500).json({
+      error: 'Failed to generate signature',
+    });
+  }
+});
+
+/**
+ * PILAR 2 - HMAC Authentication
+ * POST /hmac/verify - Verificar una firma HMAC para testing/debugging
+ */
+app.post('/hmac/verify', (req: Request, res: Response) => {
+  const { payload, signature, secret } = req.body as {
+    payload?: any;
+    signature?: string;
+    secret?: string;
+  };
+
+  if (!payload || !signature || !secret) {
+    return res.status(400).json({
+      error: 'payload, signature, and secret are required',
+    });
+  }
+
+  try {
+    // PILAR 2 - HMAC Authentication: Verificar firma
+    const isValid = HMACService.verifySignature(payload, signature, secret);
+
+    return res.json({
+      valid: isValid,
+      message: isValid ? 'Signature is valid' : 'Signature is invalid',
+    });
+  } catch (error) {
+    console.error('[PILAR 2] Error verifying signature', error);
+    return res.status(500).json({
+      error: 'Failed to verify signature',
+    });
   }
 });
 
