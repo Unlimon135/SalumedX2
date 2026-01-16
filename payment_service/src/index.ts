@@ -6,6 +6,7 @@ import { StripeAdapter } from './adapters/StripeAdapter';
 import { MockAdapter } from './adapters/MockAdapter'; // PILAR 2 - Mock Adapter
 import { PaymentAdapter } from './adapters/PaymentAdapter'; // PILAR 2 - Mock Adapter
 import { WebhookNormalizer } from './services/WebhookNormalizer'; // PILAR 2 - Webhook Normalization
+import { PartnerManager } from './services/PartnerManager'; // PILAR 2 - Partner Registration
 
 const app = express();
 
@@ -156,6 +157,103 @@ app.post('/pay', async (req: Request, res: Response) => {
     const message = error instanceof Error ? error.message : 'Unexpected error creating payment';
     console.error('Error creating payment', error);
     return res.status(500).json({ error: message });
+  }
+});
+
+// PILAR 2 - Partner Registration: Endpoints para gestión de partners
+
+/**
+ * PILAR 2 - Partner Registration
+ * POST /partners/register - Registrar un nuevo partner/grupo
+ */
+app.post('/partners/register', (req: Request, res: Response) => {
+  const { name, webhookUrl, eventosSuscritos } = req.body as {
+    name?: string;
+    webhookUrl?: string;
+    eventosSuscritos?: string[];
+  };
+
+  // PILAR 2 - Partner Registration: Validar entrada
+  if (!name || !webhookUrl || !eventosSuscritos || !Array.isArray(eventosSuscritos)) {
+    return res.status(400).json({
+      error: 'name, webhookUrl, and eventosSuscritos (array) are required',
+    });
+  }
+
+  if (eventosSuscritos.length === 0) {
+    return res.status(400).json({
+      error: 'eventosSuscritos cannot be empty',
+    });
+  }
+
+  try {
+    // PILAR 2 - Partner Registration: Registrar partner
+    const partner = PartnerManager.registerPartner(name, webhookUrl, eventosSuscritos);
+
+    return res.status(201).json({
+      message: 'Partner registered successfully',
+      partner: {
+        id: partner.id,
+        name: partner.name,
+        webhookUrl: partner.webhookUrl,
+        eventosSuscritos: partner.eventosSuscritos,
+        hmacSecret: partner.hmacSecret,
+        createdAt: partner.createdAt,
+        isActive: partner.isActive,
+      },
+    });
+  } catch (error) {
+    console.error('Error registering partner', error);
+    return res.status(500).json({ error: 'Failed to register partner' });
+  }
+});
+
+/**
+ * PILAR 2 - Partner Registration
+ * GET /partners - Listar todos los partners registrados
+ */
+app.get('/partners', (_req: Request, res: Response) => {
+  try {
+    // PILAR 2 - Partner Registration: Obtener todos los partners
+    const partners = PartnerManager.getAllPartners();
+
+    return res.json({
+      total: partners.length,
+      partners: partners.map((p) => ({
+        id: p.id,
+        name: p.name,
+        webhookUrl: p.webhookUrl,
+        eventosSuscritos: p.eventosSuscritos,
+        createdAt: p.createdAt,
+        isActive: p.isActive,
+        // NO incluir hmacSecret en la respuesta general por seguridad
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching partners', error);
+    return res.status(500).json({ error: 'Failed to fetch partners' });
+  }
+});
+
+/**
+ * PILAR 2 - Partner Registration
+ * DELETE /partners/:id - Eliminar un partner registrado
+ */
+app.delete('/partners/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    // PILAR 2 - Partner Registration: Eliminar partner
+    const deleted = PartnerManager.deletePartner(id);
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Partner not found' });
+    }
+
+    return res.json({ message: 'Partner deleted successfully', partnerId: id });
+  } catch (error) {
+    console.error('Error deleting partner', error);
+    return res.status(500).json({ error: 'Failed to delete partner' });
   }
 });
 
