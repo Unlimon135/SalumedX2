@@ -3,13 +3,32 @@ import Stripe from 'stripe';
 import axios from 'axios';
 import { config } from './config';
 import { StripeAdapter } from './adapters/StripeAdapter';
+import { MockAdapter } from './adapters/MockAdapter'; // PILAR 2 - Mock Adapter
+import { PaymentAdapter } from './adapters/PaymentAdapter'; // PILAR 2 - Mock Adapter
 
 const app = express();
-const stripe = new Stripe(config.stripeSecretKey, { apiVersion: '2023-10-16' });
-const adapter = new StripeAdapter(stripe);
+
+// PILAR 2 - Mock Adapter: Seleccionar proveedor según configuración
+let adapter: PaymentAdapter;
+let stripe: Stripe | null = null;
+
+if (config.paymentProvider === 'mock') {
+  console.log('[PILAR 2] Using MockAdapter for development');
+  adapter = new MockAdapter();
+} else {
+  console.log('[PILAR 2] Using StripeAdapter for production');
+  stripe = new Stripe(config.stripeSecretKey, { apiVersion: '2023-10-16' });
+  adapter = new StripeAdapter(stripe);
+}
 
 // Webhook needs raw body for signature validation
+// PILAR 2 - Mock Adapter: Solo funciona con Stripe real
 app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+  // PILAR 2 - Mock Adapter: Validar que se esté usando Stripe
+  if (config.paymentProvider !== 'stripe' || !stripe) {
+    return res.status(400).json({ error: 'Stripe webhooks not available in mock mode' });
+  }
+
   const signature = req.headers['stripe-signature'];
 
   if (!signature) {
