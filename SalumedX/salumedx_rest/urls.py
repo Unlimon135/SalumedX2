@@ -22,7 +22,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from login.views import (
     home, signup, tasks, signout, signin, recetas, 
     detalle_prescripcion, paciente_info, medico_info,
-    productos, farmacias, sucursales
+    productos, farmacias, sucursales,
+    signin_proxy, signup_proxy, token_status
 )
 from login.views.producto_farmacia_view import producto_farmacia_list, comparar_precios
 from login.views.admin_api_view import (
@@ -34,11 +35,22 @@ from login.views.admin_api_view import (
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name='home'),
+    
+    # Auth tradicional (pueden redirigir al auth-service internamente)
     path('signup/', signup, name='signup'),
-    path('tasks/', tasks, name='tasks'),
-    path('logout/', signout, name='logout'),
     path('signin/', signin, name='signin'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Refrescar JWT
+    path('logout/', signout, name='logout'),
+    
+    # Auth-service proxy (recomendado para JWT)
+    path('auth/login/', signin_proxy, name='signin_proxy'),
+    path('auth/register/', signup_proxy, name='signup_proxy'),
+    
+    # Token JWT
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/status/', token_status, name='token_status'),
+    
+    # Endpoints principales
+    path('tasks/', tasks, name='tasks'),
     path('recetas/', recetas, name='recetas'),
     path('detalle-prescripcion/', detalle_prescripcion, name='detalle_prescripcion'),
     path('paciente-info/', paciente_info, name='paciente_info'),

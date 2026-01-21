@@ -9,3 +9,5 @@ from .utils_view import paciente_info, medico_info
 from .productos_view import productos
 from .farmacias_view import farmacias
 from .sucursales_view import sucursales
+from .auth_proxy import signin_proxy, signup_proxy
+from .token_status_view import token_status
