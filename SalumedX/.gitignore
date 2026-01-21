@@ -46,3 +46,4 @@ dist-ssr
 *.sw?
 
 ../auth-service/
+../farmacia-service/
